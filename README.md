@@ -61,7 +61,7 @@ does not check for or suppress on an installed plugin.
 | Database | Redis | `caps/db/redis` | `redis-server` process | |
 | Database | DB2 | `caps/db/db2` | `db2sysc` process | |
 | Database | SAP HANA | `caps/db/sap_hana` | `hdbdaemon` process | |
-| Database | Couchbase | `caps/db/couchbase` | `/opt/couchbase` exists | File-based: per-service processes aren't guaranteed present, and always-present ones (`beam.smp`, `memcached`) are too generic. Default install path only. |
+| Database | Couchbase | `caps/db/couchbase` | `/opt/couchbase` exists | Directory-based — per-service processes aren't reliably present; default install path only |
 | Web / app | Apache | `caps/web/apache` | `httpd`/`apache2` process | |
 | Web / app | nginx | `caps/web/nginx` | `nginx` process | |
 | Web / app | SAP NetWeaver | `caps/app/sap_netweaver` | `disp+work` process | ABAP stack only |
