@@ -15,6 +15,14 @@ also mirrors for per-file permissions: executable for files directly inside a
 harmless here since the bakery engine sets the executable bit on what it actually
 deploys to a host, independently of the source file's permission on the site).
 
+The two agent binaries the bakery plug-in bakes onto hosts
+(``cmk_addons/plugins/caps_scout/agents/caps-scout`` and ``caps-scout.exe``) are
+build output, not checked into the repo - this script builds them fresh from
+``src/`` via ``cargo`` (native + the ``x86_64-pc-windows-gnu`` target) before
+packaging, so the MKP can never ship a binary older than the source it was built
+from. Pass ``--skip-agent-build`` to reuse whatever is already sitting in that
+`agents/` folder instead (e.g. a CI job that already built them in an earlier step).
+
 Usage:
     python build_mkp.py --manifest manifest.json --output caps-scout-snmp-1.0.0.mkp
 """
@@ -25,6 +33,8 @@ import argparse
 import io
 import json
 import pprint
+import shutil
+import subprocess
 import sys
 import tarfile
 import time
@@ -47,6 +57,37 @@ _REQUIRED = (
 )
 _PART_IDENT = "cmk_addons_plugins"
 _PART_ROOT = Path(__file__).parent / "cmk_addons" / "plugins"
+_REPO_ROOT = Path(__file__).parent.parent
+_AGENTS_DIR = _PART_ROOT / "caps_scout" / "agents"
+# (rustup target, release binary name)
+_AGENT_BUILD_TARGETS = (
+    (None, "caps-scout"),
+    ("x86_64-pc-windows-gnu", "caps-scout.exe"),
+)
+
+
+def _build_agent_binaries() -> None:
+    _AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+    for target, binary_name in _AGENT_BUILD_TARGETS:
+        cmd = ["cargo", "build", "--release"]
+        if target is not None:
+            cmd += ["--target", target]
+        result = subprocess.run(cmd, cwd=_REPO_ROOT)
+        if result.returncode != 0:
+            raise SystemExit(
+                f"cargo build failed for target {target or 'native'} - see 'Building' in the "
+                "top-level README (cross-compiling for Windows needs the "
+                "x86_64-pc-windows-gnu rustup target and a mingw linker)"
+            )
+
+        release_dir = _REPO_ROOT / "target" / (target or "") / "release"
+        built = release_dir / binary_name
+        if not built.is_file():
+            raise SystemExit(f"cargo build reported success but {built} is missing")
+
+        destination = _AGENTS_DIR / binary_name
+        shutil.copy2(built, destination)
+        destination.chmod(0o755)
 
 
 def _normalise_manifest(raw: dict) -> dict:
@@ -84,8 +125,11 @@ def _build_part_tar(part_root: Path, mtime: int) -> tuple[bytes, list[Path]]:
     return buffer.getvalue(), [p.relative_to(part_root) for p in files]
 
 
-def build_mkp(manifest: dict, output: Path, mtime: int) -> None:
+def build_mkp(manifest: dict, output: Path, mtime: int, *, skip_agent_build: bool = False) -> None:
     manifest = _normalise_manifest(manifest)
+
+    if not skip_agent_build:
+        _build_agent_binaries()
 
     part_tar, part_files = _build_part_tar(_PART_ROOT, mtime)
     if not part_files:
@@ -123,13 +167,19 @@ def main(argv: list[str] | None = None) -> int:
         default=int(time.time()),
         help="archive mtime (default: now; pass 0 for reproducible builds)",
     )
+    parser.add_argument(
+        "--skip-agent-build",
+        action="store_true",
+        help="reuse the binaries already in cmk_addons/plugins/caps_scout/agents/ instead of "
+        "rebuilding them with cargo",
+    )
     args = parser.parse_args(argv)
 
     if not args.manifest.is_file():
         parser.error(f"manifest not found: {args.manifest}")
 
     manifest = json.loads(args.manifest.read_text())
-    build_mkp(manifest, args.output, args.mtime)
+    build_mkp(manifest, args.output, args.mtime, skip_agent_build=args.skip_agent_build)
     print(f"wrote {args.output}")
     return 0
 

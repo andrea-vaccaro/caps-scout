@@ -220,21 +220,28 @@ The same MKP also ships a **bakery rule** for the Rust agent plugin itself — a
 alternative to the manual copy-and-`chmod` steps under "Installing as a Checkmk agent
 plugin" above. It bakes the plugin binaries at
 `checkmk_plugin/cmk_addons/plugins/caps_scout/agents/caps-scout` (Linux) and
-`caps-scout.exe` (Windows, built per the cross-compiling instructions under
-"Building") straight onto the agent package, so a host just needs to be covered by
-the rule to pick it up. It's Setup -> Agents -> "Windows, Linux, Solaris, AIX agent
-settings" -> **"caps-scout (capability discovery)"**: a single "Deploy the caps-scout
-plug-in" checkbox — there's nothing else to configure, since the plugin takes no
-arguments. See `checkmk_plugin/cmk_addons/plugins/caps_scout/bakery/caps_scout.py`
-(the bakery plugin) and `.../rulesets/caps_scout_bakery.py` (the WATO rule).
+`caps-scout.exe` (Windows) straight onto the agent package, so a host just needs to
+be covered by the rule to pick it up. It's Setup -> Agents -> "Windows, Linux,
+Solaris, AIX agent settings" -> **"caps-scout (capability discovery)"**: a single
+"Deploy the caps-scout plug-in" checkbox — there's nothing else to configure, since
+the plugin takes no arguments. See
+`checkmk_plugin/cmk_addons/plugins/caps_scout/bakery/caps_scout.py` (the bakery
+plugin) and `.../rulesets/caps_scout_bakery.py` (the WATO rule).
+
+Those two binaries are build output, not checked into the repo (see `.gitignore`) -
+`build_mkp.py` builds them itself from `src/` via `cargo` (native + the
+`x86_64-pc-windows-gnu` target, so the Windows cross-compile toolchain from
+"Building" above must be set up) every time it runs, so the MKP can never ship a
+binary older than the source it came from. Pass `--skip-agent-build` to reuse
+whatever is already in that `agents/` folder instead.
 
 Build and install it as an MKP:
 
 ```sh
 cd checkmk_plugin
-python3 build_mkp.py --manifest manifest.json --output caps-scout-snmp-1.2.0.mkp
-mkp add caps-scout-snmp-1.2.0.mkp
-mkp enable caps-scout-snmp 1.2.0
+python3 build_mkp.py --manifest manifest.json --output caps-scout-snmp-1.3.1.mkp
+mkp add caps-scout-snmp-1.3.1.mkp
+mkp enable caps-scout-snmp 1.3.1
 ```
 
 After enabling a rule, "bake" and "sign" the agent package (Setup -> Agents -> "Bake

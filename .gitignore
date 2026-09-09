@@ -1,3 +1,5 @@
 /target
 /checkmk_plugin/*.mkp
+/checkmk_plugin/cmk_addons/plugins/caps_scout/agents/caps-scout
+/checkmk_plugin/cmk_addons/plugins/caps_scout/agents/caps-scout.exe
 __pycache__/
