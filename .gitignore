@@ -1,0 +1,3 @@
+/target
+/checkmk_plugin/*.mkp
+__pycache__/

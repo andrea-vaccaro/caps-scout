@@ -1,0 +1,9 @@
+[package]
+name = "caps-scout"
+version = "0.1.0"
+edition = "2021"
+description = "Checkmk agent plugin: discovers host capabilities (e.g. database engines) not already covered by an installed Checkmk plugin, and reports them as Checkmk host labels."
+
+[dependencies]
+serde_json = "1"
+sysinfo = "0.39"
