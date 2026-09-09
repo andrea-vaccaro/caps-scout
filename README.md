@@ -12,6 +12,7 @@ monitoring engines, collaboration platforms, and cloud VM provisioning — see
 Checkmk ships dedicated plugins for monitoring specific, already-configured
 integrations (a database connection, a web server's status page, ...), but nothing
 detects *which* of those engines are actually present on a host in the first place.
+
 caps-scout fills that gap: it looks for the engine itself — a running process, or,
 where a process match isn't reliable, a file or directory only that engine would
 create — and emits a host label for each one it finds, regardless of whether a
@@ -116,6 +117,26 @@ rustup target add x86_64-pc-windows-gnu
 cargo build --release --target x86_64-pc-windows-gnu
 ```
 
+## Testing the agent plugin
+
+```sh
+cargo test
+```
+
+This runs the per-probe unit tests embedded in `src/` (each probe module tests its own
+matching logic in isolation) alongside two black-box test files in `tests/`:
+
+- `binary_output.rs` runs the compiled binary and asserts the *shape* of its stdout
+  contract — empty, or a well-formed `<<<labels:sep(0)>>>` section whose JSON keys all
+  start with `caps/` and whose values are all `"yes"` — regardless of what's actually
+  installed on the machine running the tests.
+- `docker_apache.rs` is a component test: it starts a real `httpd:alpine` container and
+  confirms caps-scout detects it as `caps/web/apache`. It needs a working Docker daemon
+  and network access to pull the image, but runs under plain `cargo test` with no
+  `#[ignore]` flag — it instead detects at runtime whether those prerequisites are met,
+  printing why and returning early (counted as passed, not skipped) if they aren't, so
+  the reason is visible in normal test output instead of hidden behind a flag.
+
 ## Installing as a Checkmk agent plugin
 
 Drop the compiled binary into the host's Checkmk agent plugin directory:
@@ -126,19 +147,39 @@ Drop the compiled binary into the host's Checkmk agent plugin directory:
 Make sure it's executable (Linux: `chmod +x`). The Checkmk agent will pick it up and
 run it on the next cycle.
 
-## SNMP plugin-match labels (Checkmk-side plugin)
+## Checkmk-side plugin (`checkmk_plugin/`)
 
-`checkmk_plugin/` ships a second, independent piece: a Checkmk-side `agent_based`
-plugin — not the Rust binary above — that emits `caps/snmp_plugin/<family>: "yes"`
-host labels identifying which of Checkmk's own SNMP device plugin families would
-actually attach to this host, so the label points straight at a plugin the user
-might go activate. It fetches the two universal SNMPv2-MIB System-group scalars
-(`sysDescr`, `sysObjectID`) and, per family, replicates the exact `detect=`
-condition that family's own plugin uses to decide it applies — cited from
-Checkmk's source per function. See the module docstring in
+`checkmk_plugin/` packages three independent pieces into a single Checkmk MKP, all
+under the `caps_scout` plugin family:
+
+- **SNMP plugin-match labels** — host labels pointing at Checkmk's own SNMP device
+  plugins that would apply to a host.
+- **Capabilities Scout service** — a service that surfaces the Rust agent plugin's
+  own `caps/*` labels.
+- **Bakery rule** — deploys the Rust agent plugin itself via Checkmk's Agent Bakery,
+  as an alternative to the manual install above.
+
+They ship together as one MKP because they're all part of the same project, but each
+works independently of the other two — enable only the parts you want.
+
+### SNMP plugin-match labels
+
+This is a Checkmk-side `agent_based` plugin — not the Rust binary above — that emits
+`caps/snmp_plugin/<family>: "yes"` host labels identifying which of Checkmk's own
+SNMP device plugin families would actually attach to this host, so the label points
+straight at a plugin the user might go activate.
+
+It fetches the two universal SNMPv2-MIB System-group scalars (`sysDescr`,
+`sysObjectID`) and, per family, replicates the exact `detect=` condition that
+family's own plugin uses to decide it applies — cited from Checkmk's source per
+function. See the module docstring in
 `checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/snmp_plugin_match.py` for
 the full rationale, including where a family's real condition was simplified to
 avoid an extra per-vendor SNMP fetch.
+
+This deliberately reuses the host's already-configured "SNMP credentials" rule —
+Checkmk's core fetches the data the same way it would for any other SNMP-based
+check, so no credentials are entered or duplicated anywhere in this plugin.
 
 This covers a deliberate subset of the ~150 SNMP-monitored appliance families
 Checkmk ships, not the full catalog:
@@ -160,62 +201,71 @@ dropped here to avoid an extra per-vendor SNMP fetch tree, at the cost of being
 slightly more permissive than the real plugin for those two families — see the
 module docstring for details.
 
-This deliberately reuses the host's already-configured "SNMP credentials" rule —
-Checkmk's core fetches the data the same way it would for any other SNMP-based
-check, so no credentials are entered or duplicated anywhere in this plugin.
+### Capabilities Scout service
 
-The same MKP also ships a **"Capabilities Scout" service**
-(`checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/capabilities_scout.py`)
-that makes caps-scout's own `caps/*` host labels visible as a service instead of
-only in the host's label set. It doesn't fetch or parse anything itself — it
-subscribes to the same `labels` agent section Checkmk's core already parses into
-host labels (the section the Rust binary above writes, `agents/check_mk_agent.linux`
-also writes for its own `cmk/*` labels), and filters it down to the `caps/*` keys.
-One service is discovered per host once any `caps/*` label is present; its summary
-and details both list every `caps/*` label key found (the value is always `"yes"`, so
-it's omitted), one per line as a bullet point (`• caps/<key>`) in the details. For
-labels with a known corresponding Checkmk agent-bakery rule (the rule that deploys or
-configures the plugin actually monitoring that engine — `mk_postgres`, `apache_status`,
-`mk_docker`, and so on; see `BAKERY_RULE_BY_LABEL` in
-`capabilities_scout.py` for the full, deliberately non-exhaustive list), the bullet
-also gets an **"Add rule"** link straight to that rule's "new rule" WATO page.
-Rendering it as a clickable link rather than literal `<a href=...>` text requires a
-rule in Setup → Services → Service monitoring rules → **"Escape HTML in service
-output (dangerous to deactivate - read help)"** (ruleset
-`extra_service_conf:_ESCAPE_PLUGIN_OUTPUT`), set to "Don't escape HTML" and scoped
-via a service condition to `Capabilities Scout` — then **activate changes**, since
-the setting only takes effect on the core after that. Off by default since plugin
-output is normally untrusted, but safe here because every value it can ever contain
-comes from this plugin's own fixed code, never from external input.
+`checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/capabilities_scout.py`
+makes caps-scout's own `caps/*` host labels visible as a service instead of only in
+the host's label set. It doesn't fetch or parse anything itself — it subscribes to
+the same `labels` agent section Checkmk's core already parses into host labels (the
+section the Rust binary writes, and that `agents/check_mk_agent.linux` also writes
+for its own `cmk/*` labels), and filters it down to the `caps/*` keys.
 
-On a host where caps-scout finds many capabilities, the details' per-row markup
-(the flex row and the "Add rule" pill's inline styles, on top of the label itself)
-can add up past Checkmk's default long-output size limit — 2000 bytes. When that
-happens, the details view shows a warning that the output was truncated, with a
-link in that warning message itself; clicking it goes straight to **Setup → Global
-settings → "Maximum long output size"**, where raising the value (in bytes) is the
-fix — there's nothing to change in this plugin.
+One service is discovered per host once any `caps/*` label is present. Its summary
+and details both list every `caps/*` label key found (the value is always `"yes"`,
+so it's omitted), one per line as a bullet point (`• caps/<key>`) in the details.
 
-The same MKP also ships a **bakery rule** for the Rust agent plugin itself — an
-alternative to the manual copy-and-`chmod` steps under "Installing as a Checkmk agent
-plugin" above. It bakes the plugin binaries at
+**"Add rule" links.** For labels with a known corresponding Checkmk agent-bakery
+rule (the rule that deploys or configures the plugin actually monitoring that
+engine — `mk_postgres`, `apache_status`, `mk_docker`, and so on; see
+`BAKERY_RULE_BY_LABEL` in `capabilities_scout.py` for the full, deliberately
+non-exhaustive list), the bullet also gets an **"Add rule"** link straight to that
+rule's "new rule" WATO page.
+
+**Enabling clickable links.** Rendering that link as clickable HTML rather than
+literal `<a href=...>` text requires a rule in Setup → Services → Service monitoring
+rules → **"Escape HTML in service output (dangerous to deactivate - read help)"**
+(ruleset `extra_service_conf:_ESCAPE_PLUGIN_OUTPUT`), set to "Don't escape HTML" and
+scoped via a service condition to `Capabilities Scout` — then **activate changes**,
+since the setting only takes effect on the core after that. Off by default since
+plugin output is normally untrusted, but safe here because every value it can ever
+contain comes from this plugin's own fixed code, never from external input.
+
+**Output size limit.** On a host where caps-scout finds many capabilities, the
+details' per-row markup (the flex row and the "Add rule" pill's inline styles, on
+top of the label itself) can add up past Checkmk's default long-output size limit —
+2000 bytes. When that happens, the details view shows a warning that the output was
+truncated, with a link in that warning message itself; clicking it goes straight to
+**Setup → Global settings → "Maximum long output size"**, where raising the value
+(in bytes) is the fix — there's nothing to change in this plugin.
+
+### Bakery rule for the agent plugin
+
+`checkmk_plugin/cmk_addons/plugins/caps_scout/bakery/caps_scout.py` deploys the Rust
+agent plugin itself via Checkmk's Agent Bakery — an alternative to the manual
+copy-and-`chmod` steps under "Installing as a Checkmk agent plugin" above. It bakes
+the plugin binaries at
 `checkmk_plugin/cmk_addons/plugins/caps_scout/agents/caps-scout` (Linux) and
 `caps-scout.exe` (Windows) straight onto the agent package, so a host just needs to
-be covered by the rule to pick it up. It's Setup -> Agents -> "Windows, Linux,
-Solaris, AIX agent settings" -> **"caps-scout (capability discovery)"**: a single
-"Deploy the caps-scout plug-in" checkbox — there's nothing else to configure, since
-the plugin takes no arguments. See
-`checkmk_plugin/cmk_addons/plugins/caps_scout/bakery/caps_scout.py` (the bakery
-plugin) and `.../rulesets/caps_scout_bakery.py` (the WATO rule).
+be covered by the rule to pick it up.
 
-Those two binaries are build output, not checked into the repo (see `.gitignore`) -
+The corresponding WATO rule
+(`checkmk_plugin/cmk_addons/plugins/caps_scout/rulesets/caps_scout_bakery.py`) lives
+under Setup → Agents → "Windows, Linux, Solaris, AIX agent settings" →
+**"caps-scout (capability discovery)"**: a single "Deploy the caps-scout plug-in"
+checkbox — there's nothing else to configure, since the plugin takes no arguments.
+
+Those two binaries are build output, not checked into the repo (see `.gitignore`) —
 `build_mkp.py` builds them itself from `src/` via `cargo` (native + the
 `x86_64-pc-windows-gnu` target, so the Windows cross-compile toolchain from
 "Building" above must be set up) every time it runs, so the MKP can never ship a
 binary older than the source it came from. Pass `--skip-agent-build` to reuse
 whatever is already in that `agents/` folder instead.
 
-Build and install it as an MKP:
+After enabling the rule, "bake" and "sign" the agent package (Setup → Agents →
+"Bake and sign agents", or the CLI `cmk-agent-ctl`/`cmk --bake-agents` equivalent)
+and activate changes, same as for any other bakery rule.
+
+### Building and installing the MKP
 
 ```sh
 cd checkmk_plugin
@@ -224,20 +274,19 @@ mkp add caps-scout-snmp-1.3.1.mkp
 mkp enable caps-scout-snmp 1.3.1
 ```
 
-After enabling a rule, "bake" and "sign" the agent package (Setup -> Agents -> "Bake
-and sign agents", or the CLI `cmk-agent-ctl`/`cmk --bake-agents` equivalent) and
-activate changes, same as for any other bakery rule.
+Then run (or wait for) service discovery / "Update host labels" on a host, so the
+new services and labels this MKP adds get picked up. `manifest.json`'s
+`version.min_required`/`version.packaged` target Checkmk 2.3.0 (the
+`cmk_addons.plugins` layout this uses) — adjust to your site's version if different.
 
-Then run (or wait for) service discovery / "Update host labels" on an SNMP-monitored
-host. `manifest.json`'s `version.min_required`/`version.packaged` target Checkmk
-2.3.0 (the `cmk_addons.plugins` layout this uses) — adjust to your site's version if
-different.
+### Running the tests
 
-Unit tests for the plugin's `parse_snmp_capabilities` and
-`host_label_snmp_capabilities` functions live in `checkmk_plugin/tests/` and run with
-the standard library alone (no Checkmk installation or extra dependency needed —
-`tests/_cmk_stub.py` fakes the handful of `cmk.agent_based.v2` names the plugin
-imports at load time):
+Unit tests for the SNMP plugin's `parse_snmp_plugin_match`/
+`host_label_snmp_plugin_match` functions, and for the Capabilities Scout service's
+discovery/check functions, live in `checkmk_plugin/tests/` and run with the standard
+library alone — no Checkmk installation or extra dependency needed.
+`tests/_cmk_stub.py` fakes the handful of `cmk.agent_based.v2` names these plugins
+import at load time:
 
 ```sh
 cd checkmk_plugin
