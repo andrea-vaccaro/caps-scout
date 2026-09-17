@@ -353,3 +353,7 @@ import at load time:
 cd checkmk_plugin
 python3 -m unittest discover -s tests -v
 ```
+
+## License
+
+GPL-3.0. See [`LICENSE`](LICENSE).
