@@ -154,8 +154,8 @@ under the `caps_scout` plugin family:
 
 - **SNMP plugin-match labels** — host labels pointing at Checkmk's own SNMP device
   plugins that would apply to a host.
-- **Capabilities Scout service** — a service that surfaces the Rust agent plugin's
-  own `caps/*` labels.
+- **Capabilities Scout service** — a service that surfaces every `caps/*` label on
+  the host, from both the Rust agent plugin and the SNMP plugin-match labels above.
 - **Bakery rule** — deploys the Rust agent plugin itself via Checkmk's Agent Bakery,
   as an alternative to the manual install above.
 
@@ -204,22 +204,73 @@ module docstring for details.
 ### Capabilities Scout service
 
 `checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/capabilities_scout.py`
-makes caps-scout's own `caps/*` host labels visible as a service instead of only in
-the host's label set. It doesn't fetch or parse anything itself — it subscribes to
-the same `labels` agent section Checkmk's core already parses into host labels (the
-section the Rust binary writes, and that `agents/check_mk_agent.linux` also writes
-for its own `cmk/*` labels), and filters it down to the `caps/*` keys.
+makes every `caps/*` host label visible as a service instead of only in the host's
+label set. It combines `caps/*` labels from **both** other pieces above, since
+they're two independent sources that don't otherwise meet anywhere:
+
+- The Rust agent plugin's labels: it subscribes to the same `labels` agent section
+  Checkmk's core already parses into host labels (the section the Rust binary
+  writes, and that `agents/check_mk_agent.linux` also writes for its own `cmk/*`
+  labels), and filters it down to the `caps/*` keys.
+- The SNMP plugin-match labels: those are computed by an SNMP section's
+  `host_label_function`, not written into the `labels` agent section at all, so
+  this plugin also subscribes to the raw `caps_scout_snmp_plugin_match` SNMP
+  section directly and calls `host_label_snmp_plugin_match` on it, reusing the
+  same per-family detection logic rather than re-implementing it.
+
+Either source can be absent for a given host — a pure-agent host has no SNMP
+section, a pure-SNMP device (e.g. a Cisco appliance with no Checkmk agent
+installed) has no `labels` agent section — the service is discovered as soon as
+either one has `caps/*` labels to show.
 
 One service is discovered per host once any `caps/*` label is present. Its summary
-and details both list every `caps/*` label key found (the value is always `"yes"`,
-so it's omitted), one per line as a bullet point (`• caps/<key>`) in the details.
+lists every `caps/*` label key found (the value is always `"yes"`, so it's omitted).
+The details render as a two-column **Capability / Rules** table, one row per label,
+with only a row divider drawn between rows — never a column divider between the two
+cells — so it reads as a table without looking like a spreadsheet.
 
-**"Add rule" links.** For labels with a known corresponding Checkmk agent-bakery
-rule (the rule that deploys or configures the plugin actually monitoring that
-engine — `mk_postgres`, `apache_status`, `mk_docker`, and so on; see
-`BAKERY_RULE_BY_LABEL` in `capabilities_scout.py` for the full, deliberately
-non-exhaustive list), the bullet also gets an **"Add rule"** link straight to that
-rule's "new rule" WATO page.
+**Logos.** The Capability cell shows that engine's actual logo next to a
+human-readable name (e.g. the Docker whale next to "Docker") instead of the raw
+`caps/container/docker`-style key, for every label in this README's "Detected
+capabilities" table, plus every `caps/snmp_plugin/<family>` label from the SNMP
+plugin-match table above (Cisco, Fortinet, Palo Alto Networks, F5 BIG-IP, Juniper
+Networks and HP ProCurve get their real brand/company marks; Aruba Networks and Check
+Point have no mark in Simple Icons, Devicon, or Font Awesome Free's brand sets, so
+they get the same generic network glyph as HAProxy/Varnish/CUPS/NFS/ISC DHCP below) —
+sourced from Simple Icons/Devicon/Font Awesome Free, inlined as static SVG, no runtime
+fetch (see `DISPLAY_NAME_BY_LABEL`/`ICON_BY_LABEL` in `capabilities_scout.py`). Any
+future/unrecognized `caps/*` label outside both of those tables falls back to the raw
+label key, no icon.
+
+**"Add rule" chips.** The Rules cell lists every Checkmk agent-bakery rule that applies
+to that capability (the rule that deploys or configures the plugin actually monitoring
+that engine — `mk_postgres`, `apache_status`, `mk_docker`, and so on; see
+`BAKERY_RULES_BY_LABEL` in `capabilities_scout.py` for the full, deliberately
+non-exhaustive list), each shown as the same title Checkmk's own Setup GUI uses for
+that rule (e.g. `mk_oracle` shows as "Oracle databases (Linux, Solaris, AIX,
+Windows)") next to a solid **"Add rule"** chip straight to that rule's "new rule" WATO
+page. Titles come from `RULE_TITLE_BY_NAME`, confirmed per rule against Checkmk's
+source the same way `BAKERY_RULES_BY_LABEL` itself is — a rule with no confirmed title
+yet falls back to showing its raw varname in monospace rather than a guessed title.
+`BAKERY_RULES_BY_LABEL` maps a label to a
+*tuple* of rule names — most entries are a single rule, but a capability can have two
+confirmed, mutually-exclusive rules for the same engine (Oracle's legacy `mk_oracle`
+plugin and its newer `mk_oracle_unified` replacement are one real example — Checkmk's
+own rule help text says explicitly not to configure both), in which case each gets its
+own row within the cell. A capability with no known rule at all gets a muted em dash
+instead — never a broken link, and never a stray full-width divider, since both cells
+of every row draw the same row-divider border regardless of what's in them.
+
+This chip deliberately always points at "new rule," never at an already-existing rule
+or the ruleset's overview page, even though an admin may have already configured one:
+`cmk.agent_based.v2` check functions can only declare `item`/`params`/`section*`
+parameters (`packages/cmk-check-engine/.../plugin_backend/utils.py` in Checkmk's
+source enforces this), so this plugin has no way to learn the current host's identity —
+and without that, it can't tell whether some existing rule elsewhere in the site's WATO
+config (scoped by folder, host tags, or an explicit host list) is even the one that
+applies to this host. Counting existing rules and guessing from that count would be
+misleading, so it doesn't try; "Add rule" always lands on WATO's normal rule list for
+that ruleset, where any existing rules are visible and manageable as usual.
 
 **Enabling clickable links.** Rendering that link as clickable HTML rather than
 literal `<a href=...>` text requires a rule in Setup → Services → Service monitoring
@@ -231,12 +282,13 @@ plugin output is normally untrusted, but safe here because every value it can ev
 contain comes from this plugin's own fixed code, never from external input.
 
 **Output size limit.** On a host where caps-scout finds many capabilities, the
-details' per-row markup (the flex row and the "Add rule" pill's inline styles, on
-top of the label itself) can add up past Checkmk's default long-output size limit —
-2000 bytes. When that happens, the details view shows a warning that the output was
-truncated, with a link in that warning message itself; clicking it goes straight to
-**Setup → Global settings → "Maximum long output size"**, where raising the value
-(in bytes) is the fix — there's nothing to change in this plugin.
+details' per-row markup (the table cells' inline styles, the "Add rule" chips, plus
+the inlined logo SVG, on top of the label itself) can add up past Checkmk's default
+long-output size limit — 2000 bytes; a row with a logo runs roughly 300–1300 bytes
+depending on the icon. When that happens, the details view shows a warning that the
+output was truncated, with a link in that warning message itself; clicking it goes
+straight to **Setup → Global settings → "Maximum long output size"**, where raising
+the value (in bytes) is the fix — there's nothing to change in this plugin.
 
 ### Bakery rule for the agent plugin
 
@@ -269,15 +321,24 @@ and activate changes, same as for any other bakery rule.
 
 ```sh
 cd checkmk_plugin
-python3 build_mkp.py --manifest manifest.json --output caps-scout-snmp-1.3.1.mkp
-mkp add caps-scout-snmp-1.3.1.mkp
-mkp enable caps-scout-snmp 1.3.1
+python3 build_mkp.py --manifest manifest.json --output caps-scout-1.4.0.mkp
+mkp add caps-scout-1.4.0.mkp
+mkp enable caps-scout 1.4.0
 ```
 
 Then run (or wait for) service discovery / "Update host labels" on a host, so the
 new services and labels this MKP adds get picked up. `manifest.json`'s
-`version.min_required`/`version.packaged` target Checkmk 2.3.0 (the
-`cmk_addons.plugins` layout this uses) — adjust to your site's version if different.
+`version.min_required`/`version.packaged` target Checkmk 2.5.0 — the version this
+plugin is developed and tested against, including the bakery rule's
+`cmk.bakery.v2_unstable` dependency — adjust to your site's version if different.
+
+`./deploy.sh [site] [--skip-agent-build]` (site defaults to `v250`) automates the
+above for a local dev site: it bumps `manifest.json`'s patch version, builds the
+MKP, and adds/enables it on the given site (disabling the previously-deployed
+version), via `sudo su - <site>` — so it prompts for your sudo password once.
+Bumping the version on every run matters: the site's package manager keys
+installed packages by `(name, version)`, so re-adding/enabling an already-installed
+version number is a no-op and silently keeps the old content.
 
 ### Running the tests
 
