@@ -1,11 +1,11 @@
 {
-  "title": "caps-scout SNMP plugin-match labels",
-  "name": "caps-scout-snmp",
-  "description": "Emits caps/snmp_plugin/<family> host labels identifying which of Checkmk's SNMP device plugin families (cisco, juniper, fortinet, aruba, hp_procurve, checkpoint, palo_alto, f5_bigip) would attach to this host, using the host's already-configured SNMP credentials. Also ships a 'Capabilities Scout' service listing every caps-scout caps/* host label (each with an 'Add rule' link to the matching bakery rule where one exists), and a bakery rule to deploy the caps-scout agent plugin itself.",
-  "version": "1.3.1",
-  "version.packaged": "2.3.0",
-  "version.min_required": "2.3.0",
+  "title": "caps-scout",
+  "name": "caps-scout",
+  "description": "Host capability discovery: ships a 'Capabilities Scout' service listing every caps-scout caps/* host label, from both the Rust agent plugin (databases, web/app servers, containers, clustering, backup, and more - see the README) and the SNMP plugin-match labels below (each with an 'Add rule' chip to the matching bakery rule where one exists). Also emits caps/snmp_plugin/<family> host labels identifying which of Checkmk's SNMP device plugin families (cisco, juniper, fortinet, aruba, hp_procurve, checkpoint, palo_alto, f5_bigip) would attach to this host, using the host's already-configured SNMP credentials, and ships a bakery rule to deploy the caps-scout agent plugin itself.",
+  "version": "1.4.10",
+  "version.packaged": "2.5.0",
+  "version.min_required": "2.5.0",
   "version.usable_until": null,
-  "author": "caps-scout",
+  "author": "Andrea Vaccaro <andrea.vaccaro@gmail.com>",
   "download_url": "https://checkmk.com/"
 }

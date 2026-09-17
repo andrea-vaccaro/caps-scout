@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble a Checkmk MKP for caps-scout's SNMP capability plugin.
+"""Assemble a Checkmk MKP for the caps-scout host capability discovery plugin.
 
 Replicates the on-disk layout produced by cmk/mkp_tool (a gzip tar containing
 ``info``, ``info.json`` and a per-part ``<part>.tar``) using only the standard
@@ -24,7 +24,7 @@ from. Pass ``--skip-agent-build`` to reuse whatever is already sitting in that
 `agents/` folder instead (e.g. a CI job that already built them in an earlier step).
 
 Usage:
-    python build_mkp.py --manifest manifest.json --output caps-scout-snmp-1.0.0.mkp
+    python build_mkp.py --manifest manifest.json --output caps-scout-1.0.0.mkp
 """
 
 from __future__ import annotations
