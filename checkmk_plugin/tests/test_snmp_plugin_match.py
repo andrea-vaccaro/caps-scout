@@ -45,8 +45,19 @@ class TestHostLabelSnmpPluginMatch(unittest.TestCase):
             ["caps/snmp_plugin/juniper"],
         )
 
-    def test_juniper_screenos_sub_line_is_not_covered(self):
-        self.assertEqual(_labels("NetScreen", ".1.3.6.1.4.1.3224.1.1"), [])
+    def test_juniper_screenos_sub_line_now_matches(self):
+        # Previously an explicit gap (see the old docstring); the juniper
+        # detector was extended to close it.
+        self.assertEqual(
+            _labels("NetScreen", ".1.3.6.1.4.1.3224.1.1"),
+            ["caps/snmp_plugin/juniper"],
+        )
+
+    def test_juniper_trpz_sub_line_matches(self):
+        self.assertEqual(
+            _labels("Trapeze Networks MX-8", ".1.3.6.1.4.1.14525.3.1"),
+            ["caps/snmp_plugin/juniper"],
+        )
 
     def test_fortigate_matches_on_sysobjectid_prefix(self):
         self.assertEqual(
@@ -107,6 +118,522 @@ class TestHostLabelSnmpPluginMatch(unittest.TestCase):
         self.assertEqual(
             _labels("BIG-IP 12.1.0", ".1.3.6.1.4.1.3375.2.1.3.4.20"),
             ["caps/snmp_plugin/f5_bigip"],
+        )
+
+    def test_acme_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/acme",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.9148'),
+        )
+
+    def test_adva_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/adva",
+            _labels('Fiber Service Platform F7', '.9.9.9.9.9.9'),
+        )
+
+    def test_akcp_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/akcp",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.3854.1'),
+        )
+
+    def test_alcatel_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/alcatel",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.6486.801'),
+        )
+
+    def test_apc_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/apc",
+            _labels('apc', '.9.9.9.9.9.9'),
+        )
+
+    def test_arbor_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/arbor",
+            _labels('Peakflow', '.9.9.9.9.9.9'),
+        )
+
+    def test_arris_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/arris",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.4998.2.1'),
+        )
+
+    def test_atto_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/atto",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.4547'),
+        )
+
+    def test_audiocodes_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/audiocodes",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.5003.8.1.1'),
+        )
+
+    def test_avaya_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/avaya",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.2272'),
+        )
+
+    def test_barracuda_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/barracuda",
+            _labels('barracuda', '.1.3.6.1.4.1.8072.3.2.10'),
+        )
+
+    def test_bintec_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bintec",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.272.4'),
+        )
+
+    def test_blade_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/blade",
+            _labels('bx600', '.9.9.9.9.9.9'),
+        )
+
+    def test_bluecat_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bluecat",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.13315.2.1'),
+        )
+
+    def test_bluecoat_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bluecoat",
+            _labels('Generic Test Device', '1.3.6.1.4.1.3417.1.1'),
+        )
+
+    def test_brocade_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/brocade",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.1588.2.1.1'),
+        )
+
+    def test_bvip_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bvip",
+            _labels('flexidome', '.9.9.9.9.9.9'),
+        )
+
+    def test_casa_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/casa",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.20858.2.'),
+        )
+
+    def test_ciena_ces_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/ciena_ces",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.1271.1.2.11'),
+        )
+
+    def test_datapower_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/datapower",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.14685.1.8'),
+        )
+
+    def test_decru_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/decru",
+            _labels('datafort', '.9.9.9.9.9.9'),
+        )
+
+    def test_didactum_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/didactum",
+            _labels('didactum', '.9.9.9.9.9.9'),
+        )
+
+    def test_docsis_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/docsis",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.4115.820.1.0.0.0.0.0'),
+        )
+
+    def test_eltek_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/eltek",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.12148.9'),
+        )
+
+    def test_emc_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/emc",
+            _labels('isilon', '.9.9.9.9.9.9'),
+        )
+
+    def test_enterasys_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/enterasys",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.5624.2.1'),
+        )
+
+    def test_enviromux_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/enviromux",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.3699.1.1.11'),
+        )
+
+    def test_epson_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/epson",
+            _labels('Generic Test Device', '1248'),
+        )
+
+    def test_fireeye_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/fireeye",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.25597.1'),
+        )
+
+    def test_fjdarye_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/fjdarye",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.211.1.21.1.60'),
+        )
+
+    def test_genua_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/genua",
+            _labels('genuscreen', '.9.9.9.9.9.9'),
+        )
+
+    def test_gude_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/gude",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.28507'),
+        )
+
+    def test_h3c_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/h3c",
+            _labels('3com s', '.9.9.9.9.9.9'),
+        )
+
+    def test_hitachi_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hitachi",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.116'),
+        )
+
+    def test_hitachi_hnas_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hitachi_hnas",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.11096.6'),
+        )
+
+    def test_hp_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hp",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.11.10.2.1.3.20'),
+        )
+
+    def test_hp_blade_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hp_blade",
+            _labels('Generic Test Device', '.11.5.7.1.2'),
+        )
+
+    def test_hpux_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hpux",
+            _labels('HP-UX', '.9.9.9.9.9.9'),
+        )
+
+    def test_huawei_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/huawei",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.2011.2.23'),
+        )
+
+    def test_hwg_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hwg",
+            _labels('hwg', '.9.9.9.9.9.9'),
+        )
+
+    def test_icom_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/icom",
+            _labels('fr5000', '.9.9.9.9.9.9'),
+        )
+
+    def test_infoblox_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/infoblox",
+            _labels('infoblox', '.9.9.9.9.9.9'),
+        )
+
+    def test_innovaphone_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/innovaphone",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.6666'),
+        )
+
+    def test_intel_true_scale_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/intel_true_scale",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.10222'),
+        )
+
+    def test_ispro_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/ispro",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.19011.1.3.2'),
+        )
+
+    def test_janitza_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/janitza",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.34278.8.6'),
+        )
+
+    def test_kemp_loadmaster_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/kemp_loadmaster",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.12196.250.10'),
+        )
+
+    def test_kentix_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/kentix",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.332.11.6'),
+        )
+
+    def test_knuerr_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/knuerr",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.3711.15.1'),
+        )
+
+    def test_kyocera_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/kyocera",
+            _labels('kyocera', '.9.9.9.9.9.9'),
+        )
+
+    def test_lgp_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/lgp",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.476.1.42'),
+        )
+
+    def test_liebert_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/liebert",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.476.1.42'),
+        )
+
+    def test_mcafee_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/mcafee",
+            _labels('mcafee email gateway', '.9.9.9.9.9.9'),
+        )
+
+    def test_meinberg_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/meinberg",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.5597.3'),
+        )
+
+    def test_meraki_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/meraki",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.29671'),
+        )
+
+    def test_mikrotik_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/mikrotik",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.14988.1'),
+        )
+
+    def test_moxa_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/moxa",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.8691.'),
+        )
+
+    def test_netextreme_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/netextreme",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.1916.2'),
+        )
+
+    def test_netgear_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/netgear",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.4526.100'),
+        )
+
+    def test_netscaler_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/netscaler",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.5951.1'),
+        )
+
+    def test_nimble_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/nimble",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.37447.3.1'),
+        )
+
+    def test_pandacom_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/pandacom",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.3652.3'),
+        )
+
+    def test_papouch_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/papouch",
+            _labels('th2e', '.0.10.43.6.1.4.1'),
+        )
+
+    def test_perle_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/perle",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.1966.20'),
+        )
+
+    def test_pfsense_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/pfsense",
+            _labels('pfsense', '.9.9.9.9.9.9'),
+        )
+
+    def test_poseidon_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/poseidon",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.21796.3'),
+        )
+
+    def test_printer_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/printer",
+            _labels('canon', '.9.9.9.9.9.9'),
+        )
+
+    def test_pulse_secure_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/pulse_secure",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.12532'),
+        )
+
+    def test_qlogic_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/qlogic",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.3873'),
+        )
+
+    def test_qnap_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/qnap",
+            _labels('Linux TS-', '.9.9.9.9.9.9'),
+        )
+
+    def test_raritan_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/raritan",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.13742.6'),
+        )
+
+    def test_rittal_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/rittal",
+            _labels('Rittal LCP', '.9.9.9.9.9.9'),
+        )
+
+    def test_roomalert_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/roomalert",
+            _labels('Generic Test Device', '1.3.6.1.4.1.20916.1.8'),
+        )
+
+    def test_safenet_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/safenet",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.12383'),
+        )
+
+    def test_sentry_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/sentry",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.1718.3'),
+        )
+
+    def test_silverpeak_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/silverpeak",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.23867'),
+        )
+
+    def test_sni_octopuse_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/sni_octopuse",
+            _labels('agent for hipath', '.9.9.9.9.9.9'),
+        )
+
+    def test_sophos_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/sophos",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.21067.2'),
+        )
+
+    def test_steelhead_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/steelhead",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.17163.'),
+        )
+
+    def test_teracom_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/teracom",
+            _labels('teracom', '.9.9.9.9.9.9'),
+        )
+
+    def test_ups_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/ups",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.232.165.3'),
+        )
+
+    def test_vutlan_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/vutlan",
+            _labels('vutlan ems', '.9.9.9.9.9.9'),
+        )
+
+    def test_wagner_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/wagner",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.34187.21501'),
+        )
+
+    def test_watchdog_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/watchdog",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.21239.5.1'),
+        )
+
+    def test_wut_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/wut",
+            _labels('Generic Test Device', '.1.3.6.1.4.1.5040'),
+        )
+
+    def test_zebra_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/zebra",
+            _labels('zebra', '.9.9.9.9.9.9'),
         )
 
     def test_multiple_families_can_match_simultaneously(self):

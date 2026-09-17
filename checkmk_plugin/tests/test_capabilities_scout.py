@@ -12,12 +12,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from cmk.agent_based.v2 import State  # noqa: E402
 
 from cmk_addons.plugins.caps_scout.agent_based.capabilities_scout import (  # noqa: E402
+    DISPLAY_NAME_BY_LABEL,
+    ICON_BY_LABEL,
     _TD_CAPABILITY_STYLE,
     _TD_RULES_STYLE,
     check_capabilities_scout,
     discover_capabilities_scout,
 )
-from cmk_addons.plugins.caps_scout.agent_based.snmp_plugin_match import SysInfo  # noqa: E402
+from cmk_addons.plugins.caps_scout.agent_based.snmp_plugin_match import (  # noqa: E402
+    SysInfo,
+    _FAMILY_DETECTORS,
+)
 
 CISCO_ASA_SYSINFO = SysInfo(
     sys_descr="Cisco Adaptive Security Appliance Version 9.9(2)61",
@@ -180,6 +185,33 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
         [result] = check_capabilities_scout(section, None)
         self.assertIn("caps/snmp_plugin/made_up_family", result.details)
         self.assertNotIn("<svg", result.details)
+
+    def test_details_render_a_real_brand_mark_for_huawei(self):
+        section = {"caps/snmp_plugin/huawei": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("Huawei", result.details)
+        self.assertIn("<svg", result.details)
+
+    def test_details_render_a_company_mark_for_apc_via_schneider_electric(self):
+        # APC (power/UPS/PDU vendor) was acquired by Schneider Electric in 2007 -
+        # no dedicated APC mark exists in Simple Icons, so it reuses Schneider
+        # Electric's, the same company-mark tier as Dell for EMC or NetApp for Decru.
+        section = {"caps/snmp_plugin/apc": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("APC", result.details)
+        self.assertIn("<svg", result.details)
+
+    def test_details_render_a_generic_glyph_for_an_unbranded_sensor_vendor(self):
+        section = {"caps/snmp_plugin/akcp": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("AKCP", result.details)
+        self.assertIn("<svg", result.details)
+
+    def test_every_snmp_plugin_match_family_has_a_display_name_and_icon(self):
+        for family, _ in _FAMILY_DETECTORS:
+            label = f"caps/snmp_plugin/{family}"
+            self.assertIn(label, DISPLAY_NAME_BY_LABEL, f"missing display name for {family}")
+            self.assertIn(label, ICON_BY_LABEL, f"missing icon for {family}")
 
 
 if __name__ == "__main__":
