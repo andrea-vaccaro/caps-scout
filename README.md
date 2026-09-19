@@ -7,6 +7,8 @@ servers, containers and virtualization, clustering/HA, backup/DR, messaging and
 monitoring engines, collaboration platforms, and cloud VM provisioning — see
 [Detected capabilities](#detected-capabilities) below for the full list.
 
+![The Capabilities Scout service, listing each detected capability with its logo and an "Add rule" button for the matching Checkmk bakery rule](docs/images/capabilities-scout-service.png)
+
 ## Why
 
 Checkmk ships dedicated plugins for monitoring specific, already-configured
