@@ -425,11 +425,15 @@ and activate changes, same as for any other bakery rule.
 
 ### Building and installing the MKP
 
+Pre-built MKPs are attached to each [GitHub Release](https://github.com/andrea-vaccaro/caps-scout/releases)
+— download the `.mkp` for the version you want and skip straight to `mkp add`
+below. To build it yourself instead:
+
 ```sh
 cd checkmk_plugin
-python3 build_mkp.py --manifest manifest.json --output caps-scout-1.4.0.mkp
-mkp add caps-scout-1.4.0.mkp
-mkp enable caps-scout 1.4.0
+python3 build_mkp.py --manifest manifest.json --output caps-scout-1.0.0.mkp
+mkp add caps-scout-1.0.0.mkp
+mkp enable caps-scout 1.0.0
 ```
 
 Then run (or wait for) service discovery / "Update host labels" on a host, so the
