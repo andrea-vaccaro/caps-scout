@@ -18,12 +18,11 @@ rather than every single cycle can be worth it.
 Deliberately targets `cmk.bakery.v2_unstable`, not the nominally-stable `v1`: v1's
 `Plugin(source=...)` is resolved against the site's legacy global agent-source
 directories, not this plugin family's own `cmk_addons/plugins/caps_scout/agents/`
-folder, so a v1
-plugin's source file is silently never found when packaged as an MKP this way. v2's
-resolver looks up `source` relative to the bakery module's own family folder instead
-- the same mechanism Checkmk's own shipped
-`cmk/plugins/ceph/bakery/ceph.py` and `cmk/plugins/oracle/bakery/mk_oracle_unified.py`
-rely on for this exact reason.
+folder, so a v1 plugin's source file is silently never found when packaged as an MKP
+this way. v2's resolver looks up `source` relative to the bakery module's own family
+folder instead - the same reason Checkmk's own shipped `cmk/plugins/ceph/bakery/ceph.py`
+and `cmk/plugins/oracle/bakery/mk_oracle_unified.py` (both of which ship a compiled/
+packaged artifact per OS, same as this one) also target `v2_unstable` rather than `v1`.
 """
 
 from collections.abc import Iterable
