@@ -183,17 +183,24 @@ This deliberately reuses the host's already-configured "SNMP credentials" rule �
 Checkmk's core fetches the data the same way it would for any other SNMP-based
 check, so no credentials are entered or duplicated anywhere in this plugin.
 
-This covers 94 of the ~150-280 SNMP-monitored appliance families Checkmk ships,
-not the full catalog — a further ~26 directories are known but not yet
-individually researched, and a handful (`hp_proliant`, `keepalived`, `entersekt`,
-`quantum`, `fujitsu`, `primekey`, `artec`, `zertificon`, plus `oracle_snmp`,
-`supermicro`, `domino`, `quanta`, `stormshield`, `synology` found while wiring in
-this batch) were deliberately excluded because their real Checkmk condition isn't
-meaningfully expressible via `sysDescr`/`sysObjectID` alone — either it depends on
-a third OID this plugin doesn't fetch, or the only remainder after dropping an
-`exists()` half is too generic to mean anything (a bare "contains linux" or the
-shared generic net-snmp enterprise OID with no vendor narrowing) — see the module
-docstring for the full reasoning per family:
+An exhaustive pass over all 279 real directories under Checkmk's `cmk/plugins/`
+(a naive `ls | wc -l` gives 281, but two entries, `BUILD` and `OWNERS`, aren't
+plugin families at all) resolved the full picture: this covers **117** of them;
+**139** have no SNMP `detect=` condition anywhere and are confirmed out of
+scope (special agents, agent-section-only plugins, shared library code); **22**
+were researched and deliberately excluded because their real Checkmk condition
+isn't meaningfully expressible via `sysDescr`/`sysObjectID` alone — either it
+depends on a third OID this plugin doesn't fetch (`hp_proliant`, `oracle_snmp`,
+`supermicro`, `etherbox2`, `emerson`, `hr`, `poe`, `openbsd`), the only remainder
+after dropping an `exists()` half is too generic to mean anything (`keepalived`,
+`entersekt`, `synology`, `quantum`, `fujitsu`, `primekey`, `quanta`,
+`stormshield`, `domino`, `fast_lta`), or it's redundant with/too broad next to an
+already-covered family (`rmon`, `carel`, `artec`, `zertificon`); and **1**
+(`security_master`) is left unresolved — its cited Checkmk source is missing a
+leading `.` in its match value, which looks like an upstream bug that would make
+a faithful copy never fire, so it's deferred pending a decision on whether to
+replicate the bug or fix it. See the module docstring for the full reasoning per
+family:
 
 | Family | Label | Matches |
 | --- | --- | --- |
@@ -291,6 +298,29 @@ docstring for the full reasoning per family:
 | Watchdog Sensors | `caps/snmp_plugin/watchdog` | sysObjectID under either of 2 Watchdog OIDs |
 | W&T | `caps/snmp_plugin/wut` | sysObjectID under W&T's enterprise branch (simplified) |
 | Zebra printer | `caps/snmp_plugin/zebra` | sysDescr contains "zebra" |
+| BDT tape library | `caps/snmp_plugin/bdt_tape` | sysObjectID contains `.20884.77.83.1` (older) or `.20884.10893.2.101` (newer) |
+| BayTech/BlueNET PDU | `caps/snmp_plugin/bluenet` | sysObjectID starts with `.21695.1` or contains `.31770.2.1` |
+| CBL AirLaser | `caps/snmp_plugin/cbl` | sysDescr contains "airlaser" |
+| Cisco Secure Email/Web Manager | `caps/snmp_plugin/cisco_sma` | sysObjectID equals `.15497.1.1` — distinct from the main `cisco` family |
+| Climaveneta | `caps/snmp_plugin/climaveneta` | sysDescr equals "pCO Gateway" |
+| CoreProcess Secure | `caps/snmp_plugin/cpsecure` | sysObjectID equals `.26546.1.1.2` |
+| NetApp filer (ONTAP) | `caps/snmp_plugin/netapp` | sysDescr contains "ontap" or sysObjectID under NetApp's enterprise OID |
+| EMKA enclosure monitoring | `caps/snmp_plugin/emka` | sysDescr contains "emka" AND sysObjectID starts with EMKA's enterprise OID |
+| eWON industrial router | `caps/snmp_plugin/ewon` | sysObjectID equals `.8284.2.1` |
+| F5 rSeries | `caps/snmp_plugin/f5os_rseries` | sysDescr contains "rSeries" AND sysObjectID starts with `.12276.1.3.` — distinct from `f5_bigip` |
+| Hepta | `caps/snmp_plugin/hepta` | sysObjectID under Hepta's enterprise OID |
+| HPE/H3C switch | `caps/snmp_plugin/hp_hh3c` | sysObjectID under a distinct OID branch AND sysDescr contains "H3C" or "HPE" — distinct from `h3c` |
+| HP Modular Cooling System | `caps/snmp_plugin/hp_mcs` | sysObjectID under HP MCS's enterprise OID |
+| Infratec Plus RMS200 | `caps/snmp_plugin/infratec_plus` | sysObjectID equals Infratec Plus's OID |
+| IPR400 VoIP intercom | `caps/snmp_plugin/ipr400` | sysDescr starts with "ipr voip device ipr400" |
+| Orion UPS/power | `caps/snmp_plugin/orion` | sysObjectID under Orion's enterprise OID |
+| Packeteer PacketShaper | `caps/snmp_plugin/packeteer` | sysObjectID under Packeteer's enterprise OID |
+| SEH PSrv print server | `caps/snmp_plugin/seh` | sysObjectID contains SEH's OID |
+| Sensatronics (newer) | `caps/snmp_plugin/sensatronics` | sysObjectID equals Sensatronics's OID |
+| Sensatronics EM1 (older) | `caps/snmp_plugin/strem1` | sysDescr contains "Sensatronics EM1" |
+| 3Com SuperStack 3 | `caps/snmp_plugin/superstack3` | sysDescr contains "3com superstack 3" — distinct from `h3c`'s "3com s" |
+| Symantec/Broadcom Brightmail | `caps/snmp_plugin/sym_brightmail` | sysDescr contains "el5_sms" or "el6" |
+| Arista Networks | `caps/snmp_plugin/arista` | sysDescr starts with "arista networks" |
 
 Check Point and F5 BIG-IP's real `detect=` conditions (and most of the rows above)
 also AND in a second, vendor-specific OID beyond `sysDescr`/`sysObjectID`; that
@@ -329,7 +359,7 @@ cells — so it reads as a table without looking like a spreadsheet.
 **Logos.** The Capability cell shows that engine's actual logo next to a
 human-readable name (e.g. the Docker whale next to "Docker") instead of the raw
 `caps/container/docker`-style key, for every label in this README's "Detected
-capabilities" table, plus every one of the 94 `caps/snmp_plugin/<family>` labels
+capabilities" table, plus every one of the 117 `caps/snmp_plugin/<family>` labels
 from the SNMP plugin-match table above — sourced from Simple Icons/Devicon/Font
 Awesome Free, inlined as static SVG, no runtime fetch (see
 `DISPLAY_NAME_BY_LABEL`/`ICON_BY_LABEL` in `capabilities_scout.py`). Real brand

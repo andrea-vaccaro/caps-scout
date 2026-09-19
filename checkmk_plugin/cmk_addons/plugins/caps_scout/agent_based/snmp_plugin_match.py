@@ -14,35 +14,57 @@ this answers a more directly useful question: *which of Checkmk's own
 SNMP-monitored device plugin families would actually attach to this host*,
 so the label points straight at a plugin the user might go activate.
 
-Checkmk ships ~150-280 such families under `cmk/plugins/<family>/`, each
-deciding whether one of its own check plugins applies to a scanned device
-via a `detect=` scan spec - almost always built from `sysDescr`
+Checkmk ships such families under `cmk/plugins/<family>/`, each deciding
+whether one of its own check plugins applies to a scanned device via a
+`detect=` scan spec - almost always built from `sysDescr`
 (`.1.3.6.1.2.1.1.1.0`) and/or `sysObjectID` (`.1.3.6.1.2.1.1.2.0`), the same
 two System-group scalars `cmk/plugins/network/agent_based/snmp_info.py`
-already fetches for its own `cmk/device_type` label. `_FAMILY_DETECTORS`
-below covers 94 of them (cisco, juniper, fortinet, aruba, hp_procurve,
-checkpoint, palo_alto, f5_bigip, and many more) - still not the full
-catalog: a further ~26 directories were seen referencing sysDescr/
-sysObjectID but not yet individually researched (a later pass should pick
-these up), and a handful were researched and deliberately excluded because
-their real Checkmk condition isn't meaningfully expressible via
-sysDescr/sysObjectID alone - either it depends entirely on a third,
-unrelated OID this plugin doesn't fetch (`hp_proliant`, `oracle_snmp`'s
-Oracle DIVA CSM check, `supermicro`), or the only sysDescr/sysObjectID-only
-remainder left after dropping an `exists()` half is too generic to mean
-anything - a bare "contains linux"/"starts with Linux" (`keepalived`,
-`entersekt`, `synology`) or the shared generic net-snmp enterprise OID with
-no vendor narrowing at all (`quantum`, `fujitsu`, `primekey`, `quanta`,
-`stormshield`, `domino`); shipping those would have this plugin claim a
-specific vendor's device on essentially any generic Linux/Windows/net-snmp
-host, which is worse than not labeling it at all. For each family that *is*
-included, this plugin replicates the exact condition that family's own
-`lib.py` (or, for some, an inline `detect=` in a check file) uses, cited per
-function below. Where a family's real condition also ANDs in a second,
-vendor-specific OID beyond sysDescr/sysObjectID, that second condition is
-dropped here rather than adding a per-vendor SNMP fetch tree just for it -
-noted per function, since it makes this plugin's match slightly more
-permissive than the real one for those families.
+already fetches for its own `cmk/device_type` label. An exhaustive pass over
+every one of the 279 real directories under `cmk/plugins/` (a naive
+`ls cmk/plugins | wc -l` gives 281, but two entries, `BUILD` and `OWNERS`,
+are not plugin directories at all) settled the full picture:
+
+- **117** are covered below (cisco, juniper, fortinet, aruba, hp_procurve,
+  checkpoint, palo_alto, f5_bigip, and many more).
+- **139** have no SNMP `detect=`/`DETECT_*` condition anywhere at all -
+  special agents, agent-section-only plugins that parse the *agent's* own
+  stdout, or shared library/support code - confirmed out of scope, not just
+  unresearched.
+- **22** were researched and deliberately excluded because their real
+  Checkmk condition isn't meaningfully expressible via sysDescr/sysObjectID
+  alone - either it depends entirely on a third, unrelated OID this plugin
+  doesn't fetch (`hp_proliant`, `oracle_snmp`'s Oracle DIVA CSM check,
+  `supermicro`, `etherbox2`, `emerson`, `hr`'s HOST-RESOURCES-MIB probe,
+  `poe`'s POWER-ETHERNET-MIB probe, `openbsd`), or the only
+  sysDescr/sysObjectID-only remainder left after dropping an `exists()` half
+  is too generic to mean anything - a bare "contains linux"/"starts with
+  Linux" (`keepalived`, `entersekt`, `synology`) or the shared generic
+  net-snmp enterprise OID with no vendor narrowing at all (`quantum`,
+  `fujitsu`, `primekey`, `quanta`, `stormshield`, `domino`, `fast_lta`,
+  `artec` - the last one also ANDs in sysDescr containing "version" and
+  "serial", still too common to mean anything), or it's redundant with/too
+  broad next to an already-covered family (`rmon`, `carel` next to the
+  `climaveneta` family below); shipping those would have this plugin claim a
+  specific vendor's device on essentially any generic Linux/Windows/net-snmp
+  host, which is worse than not labeling it at all. One more, `zertificon`,
+  is excluded for a different reason: its cited condition is
+  `exists(sysDescr) AND not_exists(sysDescr)` on the same OID - logically
+  impossible, so there was nothing to replicate at all.
+- **1** (`security_master`) is left unresolved: its cited source,
+  `detect=startswith(".1.3.6.1.2.1.1.2.0", "1.3.6.1.4.1.35491")`, is missing
+  the leading `.` every real sysObjectID value has, so as literally written
+  it looks like an upstream Checkmk bug that can never match anything -
+  faithfully copying it would add a family that silently never fires, and
+  "fixing" it would mean deviating from the cited source, so it's deferred
+  pending a decision either way.
+
+For each family that *is* included, this plugin replicates the exact
+condition that family's own `lib.py` (or, for some, an inline `detect=` in a
+check file) uses, cited per function below. Where a family's real condition
+also ANDs in a second, vendor-specific OID beyond sysDescr/sysObjectID, that
+second condition is dropped here rather than adding a per-vendor SNMP fetch
+tree just for it - noted per function, since it makes this plugin's match
+slightly more permissive than the real one for those families.
 
 Checkmk's own `contains`/`startswith`/`equals`/`matches` detect helpers
 build a regex evaluated with
@@ -824,6 +846,178 @@ def _is_zebra(sys: SysInfo) -> bool:
     return _contains(sys.sys_descr, "zebra")
 
 
+def _is_bdt_tape(sys: SysInfo) -> bool:
+    """cmk/plugins/bdt_tape/agent_based/bdtms_tape_status.py:51 (also
+    bdtms_tape_info.py, bdtms_tape_module.py) and bdt_tape_info.py:36 (also
+    bdt_tape_status.py) - two BDT tape-library product generations, both
+    pure sysObjectID contains checks."""
+    return _contains(sys.sys_object_id, ".1.3.6.1.4.1.20884.77.83.1") or _contains(
+        sys.sys_object_id, ".1.3.6.1.4.1.20884.10893.2.101"
+    )
+
+
+def _is_bluenet(sys: SysInfo) -> bool:
+    """cmk/plugins/bluenet/agent_based/bluenet_sensor.py:50 (also
+    bluenet_meter.py) and bluenet2_powerrail.py:272 - two BayTech/BlueNET PDU
+    product generations."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.21695.1") or _contains(
+        sys.sys_object_id, ".1.3.6.1.4.1.31770.2.1"
+    )
+
+
+def _is_cbl(sys: SysInfo) -> bool:
+    """cmk/plugins/cbl/agent_based/cbl_airlaser.py:222 - CBL AirLaser wireless
+    bridge. Real spec also ANDs exists(".1.3.6.1.4.1.2800.2.1.1.0"); dropped
+    here since "airlaser" alone is already a specific product string, same
+    reasoning as checkpoint/f5_bigip above."""
+    return _contains(sys.sys_descr, "airlaser")
+
+
+def _is_cisco_sma(sys: SysInfo) -> bool:
+    """cmk/plugins/cisco_sma/agent_based/detect.py:8 - DETECT_CISCO_SMA (Cisco
+    Secure Email/Web Manager appliances - distinct product line from the
+    existing `cisco` network-gear family)."""
+    return _equals(sys.sys_object_id, ".1.3.6.1.4.1.15497.1.1")
+
+
+def _is_climaveneta(sys: SysInfo) -> bool:
+    """cmk/plugins/climaveneta/agent_based/climaveneta_temp.py:51 (also
+    climaveneta_fan.py, climaveneta_alarm.py) - exact sysDescr match, distinct
+    from the broader/generic `carel` pCO-controller signal (excluded - see
+    the module docstring)."""
+    return _equals(sys.sys_descr, "pCO Gateway")
+
+
+def _is_cpsecure(sys: SysInfo) -> bool:
+    """cmk/plugins/cpsecure/agent_based/cpsecure_sessions.py:57 - CoreProcess
+    Secure appliances."""
+    return _equals(sys.sys_object_id, ".1.3.6.1.4.1.26546.1.1.2")
+
+
+def _is_netapp(sys: SysInfo) -> bool:
+    """cmk/plugins/df/agent_based/df_netapp.py:44 - IS_NETAPP_FILER, the
+    vendor-identification half shared by df_netapp/df_netapp32 (their
+    exists()/not_exists() split only decides which sub-check variant to run,
+    not whether it's a NetApp filer at all - that part is fully
+    sysDescr/sysObjectID already)."""
+    return _contains(sys.sys_descr, "ontap") or _contains(sys.sys_object_id, ".1.3.6.1.4.1.789")
+
+
+def _is_emka(sys: SysInfo) -> bool:
+    """cmk/plugins/emka/agent_based/emka_modules.py:30 - DETECT_EMKA (EMKA
+    ELM2-MIB enclosure monitoring)."""
+    return _contains(sys.sys_descr, "emka") and _startswith(
+        sys.sys_object_id, ".1.3.6.1.4.1.13595"
+    )
+
+
+def _is_ewon(sys: SysInfo) -> bool:
+    """cmk/plugins/ewon/agent_based/ewon.py:213 - eWON industrial routers."""
+    return _equals(sys.sys_object_id, ".1.3.6.1.4.1.8284.2.1")
+
+
+def _is_f5os_rseries(sys: SysInfo) -> bool:
+    """cmk/plugins/f5os_rseries/lib/detect.py:10 - DETECT_F5OS_RSERIES. F5's
+    newer rSeries hardware platform - distinct OID branch from the existing
+    `f5_bigip` (BIG-IP software) family."""
+    return _contains(sys.sys_descr, "rSeries") and _startswith(
+        sys.sys_object_id, ".1.3.6.1.4.1.12276.1.3."
+    )
+
+
+def _is_hepta(sys: SysInfo) -> bool:
+    """cmk/plugins/hepta/agent_based/hepta.py:95 - Hepta UPS/power devices."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.12527")
+
+
+def _is_hp_hh3c(sys: SysInfo) -> bool:
+    """cmk/plugins/hp_hh3c/agent_based/hp_hh3c_fan.py:36 (also
+    hp_hh3c_power.py) - HPE/H3C joint-venture switches, a different OID
+    branch/era from the existing `h3c` (legacy 3Com-branded) family. The
+    third file, hp_hh3c_ext.py, ANDs an extra exists() only that one
+    sub-check needs; the fan/power detect used here needs no such clause."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.25506") and (
+        _contains(sys.sys_descr, "H3C") or _contains(sys.sys_descr, "HPE")
+    )
+
+
+def _is_hp_mcs(sys: SysInfo) -> bool:
+    """cmk/plugins/hp_mcs/agent_based/hp_mcs_sensors.py:59 (also
+    hp_mcs_system.py) - HP Modular Cooling System."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.232.167")
+
+
+def _is_infratec_plus(sys: SysInfo) -> bool:
+    """cmk/plugins/infratec_plus/agent_based/rms200_temp.py:49 - Infratec Plus
+    RMS200 environmental sensors."""
+    return _equals(sys.sys_object_id, ".1.3.6.1.4.1.1909.13")
+
+
+def _is_ipr400(sys: SysInfo) -> bool:
+    """cmk/plugins/ipr400/agent_based/ipr400_temp.py:42 (also
+    ipr400_in_voltage.py) - IPR400 VoIP intercom devices."""
+    return _startswith(sys.sys_descr, "ipr voip device ipr400")
+
+
+def _is_orion(sys: SysInfo) -> bool:
+    """cmk/plugins/orion/agent_based/orion_system.py:104 (also orion_backup.py,
+    orion_batterytest.py) - Orion (Merlin Gerin/Socomec-adjacent) UPS/power
+    systems."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.20246")
+
+
+def _is_packeteer(sys: SysInfo) -> bool:
+    """cmk/plugins/packeteer/agent_based/packeteer_ps_status.py:28 (also
+    packeteer_fan_status.py) - Packeteer/Blue Coat PacketShaper WAN
+    appliances."""
+    return _startswith(sys.sys_object_id, ".1.3.6.1.4.1.2334")
+
+
+def _is_seh(sys: SysInfo) -> bool:
+    """cmk/plugins/seh/agent_based/seh_ports.py:41 - SEH PSrv USB/print
+    servers."""
+    return _contains(sys.sys_object_id, ".1.3.6.1.4.1.1229.1.1")
+
+
+def _is_sensatronics(sys: SysInfo) -> bool:
+    """cmk/plugins/sensatronics/agent_based/sensatronics_temp.py:40 -
+    Sensatronics environmental sensors (newer product; see also `strem1`
+    below, an older Sensatronics product identified via sysDescr instead)."""
+    return _equals(sys.sys_object_id, ".1.3.6.1.4.1.16174.1.1.1")
+
+
+def _is_strem1(sys: SysInfo) -> bool:
+    """cmk/plugins/strem1/agent_based/strem1_sensors.py:86 - Sensatronics EM1,
+    an older product from the same vendor as `sensatronics` above, identified
+    via sysDescr instead of sysObjectID."""
+    return _contains(sys.sys_descr, "Sensatronics EM1")
+
+
+def _is_superstack3(sys: SysInfo) -> bool:
+    """cmk/plugins/superstack3/agent_based/superstack3_sensors.py:45 - 3Com
+    SuperStack 3 switches - distinct product line/sysDescr signal from the
+    existing `h3c` family's "3com s" prefix match."""
+    return _contains(sys.sys_descr, "3com superstack 3")
+
+
+def _is_sym_brightmail(sys: SysInfo) -> bool:
+    """cmk/plugins/sym_brightmail/agent_based/sym_brightmail_queues.py:113 -
+    Symantec/Broadcom Brightmail (mail security) gateway appliances, detected
+    via their underlying RHEL5/6 sysDescr build tags. Weaker signal than most
+    (a generic-sounding OS build tag) but it's Checkmk's own real, chosen
+    detect condition - not narrowed further here."""
+    return _contains(sys.sys_descr, "el5_sms") or _contains(sys.sys_descr, "el6")
+
+
+def _is_arista(sys: SysInfo) -> bool:
+    """cmk/plugins/entity_sensors/agent_based/entity_sensors.py:61-65 - one
+    arm of entity_sensors' detect (any_of palo-alto/cisco-asa/arista sysDescr
+    prefixes, generic ENTITY-MIB sensor support) - the palo-alto and
+    cisco-asa arms duplicate this plugin's existing `palo_alto`/`cisco`
+    families; only the Arista Networks arm is new."""
+    return _startswith(sys.sys_descr, "arista networks")
+
+
 _FAMILY_DETECTORS: Sequence[tuple[str, Callable[[SysInfo], bool]]] = (
     ("cisco", _is_cisco),
     ("juniper", _is_juniper),
@@ -919,6 +1113,29 @@ _FAMILY_DETECTORS: Sequence[tuple[str, Callable[[SysInfo], bool]]] = (
     ("watchdog", _is_watchdog),
     ("wut", _is_wut),
     ("zebra", _is_zebra),
+    ("bdt_tape", _is_bdt_tape),
+    ("bluenet", _is_bluenet),
+    ("cbl", _is_cbl),
+    ("cisco_sma", _is_cisco_sma),
+    ("climaveneta", _is_climaveneta),
+    ("cpsecure", _is_cpsecure),
+    ("netapp", _is_netapp),
+    ("emka", _is_emka),
+    ("ewon", _is_ewon),
+    ("f5os_rseries", _is_f5os_rseries),
+    ("hepta", _is_hepta),
+    ("hp_hh3c", _is_hp_hh3c),
+    ("hp_mcs", _is_hp_mcs),
+    ("infratec_plus", _is_infratec_plus),
+    ("ipr400", _is_ipr400),
+    ("orion", _is_orion),
+    ("packeteer", _is_packeteer),
+    ("seh", _is_seh),
+    ("sensatronics", _is_sensatronics),
+    ("strem1", _is_strem1),
+    ("superstack3", _is_superstack3),
+    ("sym_brightmail", _is_sym_brightmail),
+    ("arista", _is_arista),
 )
 
 
@@ -934,7 +1151,7 @@ def host_label_snmp_plugin_match(section: SysInfo) -> HostLabelGenerator:
     Labels:
 
         caps/snmp_plugin/<family>:
-            One label per matching vendor family (94 covered - see
+            One label per matching vendor family (117 covered - see
             `_FAMILY_DETECTORS` above) whose real Checkmk plugin would
             likely attach to this device - see the per-family functions
             above for the detection logic and its source.

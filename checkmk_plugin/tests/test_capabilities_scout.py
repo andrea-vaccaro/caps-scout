@@ -213,6 +213,29 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
             self.assertIn(label, DISPLAY_NAME_BY_LABEL, f"missing display name for {family}")
             self.assertIn(label, ICON_BY_LABEL, f"missing icon for {family}")
 
+    def test_details_render_a_reused_company_mark_for_netapp(self):
+        # netapp (the df_netapp SNMP family) reuses the same NetApp mark already
+        # used for decru, since it's the same company - even more directly this
+        # time, it IS NetApp.
+        section = {"caps/snmp_plugin/netapp": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("NetApp", result.details)
+        self.assertIn("<svg", result.details)
+
+    def test_details_render_a_real_brand_mark_for_sym_brightmail(self):
+        section = {"caps/snmp_plugin/sym_brightmail": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("Symantec", result.details)
+        self.assertIn("<svg", result.details)
+
+    def test_details_render_a_generic_glyph_for_arista(self):
+        # No dedicated Arista Networks mark in Simple Icons/Devicon/Font Awesome
+        # Free (checked) - falls back to the generic network glyph.
+        section = {"caps/snmp_plugin/arista": "yes"}
+        [result] = check_capabilities_scout(section, None)
+        self.assertIn("Arista", result.details)
+        self.assertIn("<svg", result.details)
+
 
 if __name__ == "__main__":
     unittest.main()

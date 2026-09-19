@@ -636,6 +636,144 @@ class TestHostLabelSnmpPluginMatch(unittest.TestCase):
             _labels('zebra', '.9.9.9.9.9.9'),
         )
 
+    def test_bdt_tape_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bdt_tape",
+            _labels("BDT tape library", ".1.3.6.1.4.1.20884.77.83.1.2"),
+        )
+
+    def test_bluenet_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/bluenet",
+            _labels("BlueNET PDU", ".1.3.6.1.4.1.21695.1.1"),
+        )
+
+    def test_cbl_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/cbl",
+            _labels("CBL AirLaser device", ".1.3.6.1.4.1.2800.2.1.1"),
+        )
+
+    def test_cisco_sma_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/cisco_sma",
+            _labels("Cisco Secure Email Manager", ".1.3.6.1.4.1.15497.1.1"),
+        )
+
+    def test_climaveneta_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/climaveneta",
+            _labels("pCO Gateway", ".1.3.6.1.4.1.9839.1.1"),
+        )
+
+    def test_cpsecure_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/cpsecure",
+            _labels("CoreProcess Secure appliance", ".1.3.6.1.4.1.26546.1.1.2"),
+        )
+
+    def test_netapp_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/netapp",
+            _labels("NetApp Release ONTAP 9.10", ".1.3.6.1.4.1.789.1.1"),
+        )
+
+    def test_emka_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/emka",
+            _labels("EMKA enclosure monitor", ".1.3.6.1.4.1.13595.1.1"),
+        )
+
+    def test_ewon_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/ewon",
+            _labels("eWON industrial router", ".1.3.6.1.4.1.8284.2.1"),
+        )
+
+    def test_f5os_rseries_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/f5os_rseries",
+            _labels("F5OS rSeries platform", ".1.3.6.1.4.1.12276.1.3.1"),
+        )
+
+    def test_hepta_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hepta",
+            _labels("Hepta power device", ".1.3.6.1.4.1.12527.1.1"),
+        )
+
+    def test_hp_hh3c_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hp_hh3c",
+            _labels("HPE H3C switch", ".1.3.6.1.4.1.25506.1.1"),
+        )
+
+    def test_hp_mcs_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/hp_mcs",
+            _labels("HP Modular Cooling System", ".1.3.6.1.4.1.232.167.1"),
+        )
+
+    def test_infratec_plus_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/infratec_plus",
+            _labels("Infratec Plus RMS200", ".1.3.6.1.4.1.1909.13"),
+        )
+
+    def test_ipr400_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/ipr400",
+            _labels("IPR VoIP Device IPR400", ".1.3.6.1.4.1.10000.1.1"),
+        )
+
+    def test_orion_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/orion",
+            _labels("Orion UPS system", ".1.3.6.1.4.1.20246.1.1"),
+        )
+
+    def test_packeteer_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/packeteer",
+            _labels("Packeteer PacketShaper", ".1.3.6.1.4.1.2334.1.1"),
+        )
+
+    def test_seh_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/seh",
+            _labels("SEH PSrv print server", ".1.3.6.1.4.1.1229.1.1.1"),
+        )
+
+    def test_sensatronics_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/sensatronics",
+            _labels("Sensatronics sensor", ".1.3.6.1.4.1.16174.1.1.1"),
+        )
+
+    def test_strem1_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/strem1",
+            _labels("Sensatronics EM1", ".1.3.6.1.4.1.99999.1.1"),
+        )
+
+    def test_superstack3_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/superstack3",
+            _labels("3Com SuperStack 3 Switch", ".1.3.6.1.4.1.43.1.1"),
+        )
+
+    def test_sym_brightmail_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/sym_brightmail",
+            _labels("Linux el6 brightmail gateway", ".1.3.6.1.4.1.99999.1.1"),
+        )
+
+    def test_arista_matches(self):
+        self.assertIn(
+            "caps/snmp_plugin/arista",
+            _labels("Arista Networks EOS", ".1.3.6.1.4.1.30065.1.1"),
+        )
+
     def test_multiple_families_can_match_simultaneously(self):
         # Not realistic for a real device, but the function shouldn't
         # short-circuit after the first match.

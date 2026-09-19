@@ -335,7 +335,10 @@ _ICON_MACOS = (
     '<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M0 15zv-3l1-1v4h1v-3l1-1 1 1v3h1v-3l-2-1H0zm8-1zl1-1h1zm0 1zh1v-3l-2-1-2 1h1l1-1 1 1H8l-2 2zm6-3-2-1q-2 0-2 2l2 2 2-2h-1l-1 1-1-1 1-2 1 1zm3-3q-3 0-3 3t3 3 2-3-2-3m0 1 1 2-1 2-2-2zm3 3 2 2 2-2-2-1v-1h-1l1-1 1 1h1l-2-2-2 2 1 1h1l1 1-1 1z"/></svg>'
 )
 
-# Icons for all 94 `caps/snmp_plugin/<family>` labels (see `snmp_plugin_match.py`) -
+# Icons for all 117 `caps/snmp_plugin/<family>` labels (see `snmp_plugin_match.py`,
+# including the 23 added by its exhaustive 279-directory re-scan - Symantec for
+# `sym_brightmail`, reused NetApp/Cisco/F5/HP marks for `netapp`/`cisco_sma`/
+# `f5os_rseries`/`hp_mcs`, generic glyphs for the rest, same scrutiny as below) -
 # same three-tier sourcing as above (real brand mark, then company mark if the
 # specific product's owning company has one and it's actually current - verified
 # per case, not assumed from the name - then a generic category glyph). Two of the
@@ -455,9 +458,18 @@ _ICON_SCHNEIDER_ELECTRIC = (
 _ICON_EPSON = (
     '<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#003399" d="M16.616 13.915c-1.029 0-1.428-.952-1.428-1.915 0-.975.398-1.927 1.428-1.927 1.03 0 1.429.952 1.429 1.927 0 .963-.399 1.915-1.429 1.915m0-4.805c-1.627 0-2.567 1.218-2.567 2.89s.94 2.89 2.567 2.89c1.628 0 2.568-1.218 2.568-2.89s-.94-2.89-2.568-2.89zM0 9.266h4.085v.974H1.141v1.207h2.745v.952H1.141v1.351h2.944v.975H0V9.266zM6.73 12.11H5.701v-1.871H6.73c.709 0 1.185.311 1.185.941 0 .621-.476.93-1.185.93m-2.168 2.614h1.14v-1.639H6.73c1.384 0 2.314-.687 2.314-1.904 0-1.229-.931-1.915-2.314-1.915H4.562v5.458zM20.768 9.266h-1.162v5.458h1.118v-2.215c0-.598-.022-1.14-.044-1.605.133.267.531 1.085.708 1.396l1.45 2.425H24V9.266h-1.106v2.158c0 .599.022 1.196.044 1.672-.133-.276-.531-1.096-.72-1.406l-1.45-2.424zM10.34 12.919c0 .73.608 1.019 1.251 1.019.421 0 1.118-.122 1.118-.687 0-.598-.842-.709-1.649-.919-.853-.232-1.672-.543-1.672-1.561 0-1.13 1.063-1.661 2.059-1.661 1.152 0 2.204.498 2.204 1.771h-1.13c-.044-.664-.554-.83-1.129-.83-.388 0-.875.154-.875.619 0 .421.277.487 1.661.842.398.11 1.66.354 1.66 1.595 0 1.018-.797 1.771-2.292 1.771-1.217 0-2.357-.598-2.347-1.959h1.141z"/></svg>'
 )
+# Simple Icons (CC0) symantec - Symantec Brightmail; later Broadcom-owned, but
+# "Brightmail" is the Symantec-era product this family actually detects
+_ICON_SYMANTEC = (
+    '<svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#FDB511" d="M22.877 0v.738h.738V0h-.738zm0 .738h-.738v.739h.738V.738zm0 .739v.738h.738v-.738h-.738zm-.738 0h-1.477v.738h-.738V3.69h-.738v.74h-1.479v.725A10.572 10.572 0 0011 2.77C5.136 2.77.385 7.52.385 13.385.385 19.248 5.136 24 11 24s10.615-4.752 10.615-10.615c0-2.56-.904-4.906-2.412-6.739h.72v-.738h.74V4.43h.737V3.69h.739v-.738H21.4v-.738h.739v-.738zM19.186 3.69v-.738h-.74v.738h.74zM11 6.154a7.193 7.193 0 014.033 1.23h-.28v.739h-.737c-1.927 2.409-2.414 3.466-3.182 5.414-.871-1.763-1.911-2.978-3.711-3.783l-.02-.006c-.327-.083-.493-.125-.718.19-.23.322-.092.613.183.955a35.212 35.212 0 00.586.703c.547.646 1.095 1.289 1.508 2.035.408.738.877 1.772 1.242 2.574.223.49.406.894.51 1.088.22.406.752.584.955.584.985-.117 1.08-.582 1.242-1.379l.057-.264c.336-1.574.771-3.203 2.824-5.158v-.736h.738V9.6h.74v-.295a7.193 7.193 0 011.26 4.08c0 3.99-3.24 7.23-7.23 7.23s-7.2-3.24-7.2-7.23 3.21-7.23 7.2-7.23z"/></svg>'
+)
 # generic network glyph - no brand mark available in any icon set checked (see above)
 _ICON_ARUBA = _ICON_GENERIC_NETWORK
 _ICON_CHECKPOINT = _ICON_GENERIC_NETWORK
+# no brand/company mark found for these (checked Simple Icons/Devicon/Font Awesome
+# Free) - Arista Networks and 3Com/H3C-descended lines fall back to the same
+# generic network glyph as the rest of that category
+_ICON_ARISTA = _ICON_GENERIC_NETWORK
 
 
 DISPLAY_NAME_BY_LABEL: Mapping[str, str] = {
@@ -601,6 +613,29 @@ DISPLAY_NAME_BY_LABEL: Mapping[str, str] = {
     "caps/snmp_plugin/watchdog": 'Watchdog Sensors',
     "caps/snmp_plugin/wut": 'W&T',
     "caps/snmp_plugin/zebra": 'Zebra Technologies',
+    "caps/snmp_plugin/bdt_tape": 'BDT Tape Library',
+    "caps/snmp_plugin/bluenet": 'BayTech BlueNET',
+    "caps/snmp_plugin/cbl": 'CBL AirLaser',
+    "caps/snmp_plugin/cisco_sma": 'Cisco Secure Email/Web Manager',
+    "caps/snmp_plugin/climaveneta": 'Climaveneta',
+    "caps/snmp_plugin/cpsecure": 'CoreProcess Secure',
+    "caps/snmp_plugin/netapp": 'NetApp Filer',
+    "caps/snmp_plugin/emka": 'EMKA Enclosure Monitoring',
+    "caps/snmp_plugin/ewon": 'eWON',
+    "caps/snmp_plugin/f5os_rseries": 'F5 rSeries',
+    "caps/snmp_plugin/hepta": 'Hepta UPS',
+    "caps/snmp_plugin/hp_hh3c": 'HPE/H3C',
+    "caps/snmp_plugin/hp_mcs": 'HP Modular Cooling System',
+    "caps/snmp_plugin/infratec_plus": 'Infratec Plus RMS200',
+    "caps/snmp_plugin/ipr400": 'IPR400 VoIP Intercom',
+    "caps/snmp_plugin/orion": 'Orion UPS',
+    "caps/snmp_plugin/packeteer": 'Packeteer PacketShaper',
+    "caps/snmp_plugin/seh": 'SEH PSrv',
+    "caps/snmp_plugin/sensatronics": 'Sensatronics',
+    "caps/snmp_plugin/strem1": 'Sensatronics EM1',
+    "caps/snmp_plugin/superstack3": '3Com SuperStack 3',
+    "caps/snmp_plugin/sym_brightmail": 'Symantec Brightmail',
+    "caps/snmp_plugin/arista": 'Arista Networks',
 }
 
 
@@ -750,6 +785,29 @@ ICON_BY_LABEL: Mapping[str, str] = {
     "caps/snmp_plugin/watchdog": _ICON_GENERIC_SENSOR,
     "caps/snmp_plugin/wut": _ICON_GENERIC_SENSOR,
     "caps/snmp_plugin/zebra": _ICON_ZEBRA,
+    "caps/snmp_plugin/bdt_tape": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/bluenet": _ICON_GENERIC_POWER,
+    "caps/snmp_plugin/cbl": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/cisco_sma": _ICON_CISCO,
+    "caps/snmp_plugin/climaveneta": _ICON_GENERIC_SENSOR,
+    "caps/snmp_plugin/cpsecure": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/netapp": _ICON_NETAPP,
+    "caps/snmp_plugin/emka": _ICON_GENERIC_SENSOR,
+    "caps/snmp_plugin/ewon": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/f5os_rseries": _ICON_F5,
+    "caps/snmp_plugin/hepta": _ICON_GENERIC_POWER,
+    "caps/snmp_plugin/hp_hh3c": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/hp_mcs": _ICON_HP,
+    "caps/snmp_plugin/infratec_plus": _ICON_GENERIC_SENSOR,
+    "caps/snmp_plugin/ipr400": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/orion": _ICON_GENERIC_POWER,
+    "caps/snmp_plugin/packeteer": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/seh": _ICON_GENERIC_PRINTER,
+    "caps/snmp_plugin/sensatronics": _ICON_GENERIC_SENSOR,
+    "caps/snmp_plugin/strem1": _ICON_GENERIC_SENSOR,
+    "caps/snmp_plugin/superstack3": _ICON_GENERIC_NETWORK,
+    "caps/snmp_plugin/sym_brightmail": _ICON_SYMANTEC,
+    "caps/snmp_plugin/arista": _ICON_ARISTA,
 }
 
 
