@@ -402,8 +402,13 @@ be covered by the rule to pick it up.
 The corresponding WATO rule
 (`checkmk_plugin/cmk_addons/plugins/caps_scout/rulesets/caps_scout_bakery.py`) lives
 under Setup → Agents → "Windows, Linux, Solaris, AIX agent settings" →
-**"caps-scout (capability discovery)"**: a single "Deploy the caps-scout plug-in"
-checkbox — there's nothing else to configure, since the plugin takes no arguments.
+**"caps-scout (capability discovery)"**: a "Deployment type" choice — deploy and run
+synchronously (every agent cycle), deploy and run on a cached interval (useful since
+the binary walks the full process table on every invocation), or don't deploy at all
+— the same sync/cached/do-not-deploy shape most first-party bakery-deployed plug-ins
+use (e.g. `isc_dhcpd`, `hyperv_vms`). The plug-in itself still takes no configuration
+of its own beyond that; it decides what to report purely from what it finds on the
+host.
 
 Those two binaries are build output, not checked into the repo (see `.gitignore`) —
 `build_mkp.py` builds them itself from `src/` via `cargo` (native + the
