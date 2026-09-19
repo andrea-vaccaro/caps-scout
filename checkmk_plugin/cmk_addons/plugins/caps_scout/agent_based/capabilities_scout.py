@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Part of caps-scout (https://github.com/andrea-vaccaro/caps-scout) - License: GNU General Public License v3
+# Part of caps-scout (https://github.com/andrea-vaccaro/caps-scout) - License: MIT
 
 """caps-scout Capabilities Scout service.
 
