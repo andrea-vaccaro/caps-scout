@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Part of caps-scout (https://github.com/andrea-vaccaro/caps-scout) - License: MIT
+# Part of caps-scout (https://github.com/andrea-vaccaro/caps-scout) - License: GNU General Public License v2
 
 """WATO rule for the caps-scout agent-plugin bakery rule (`../bakery/caps_scout.py`)."""
 

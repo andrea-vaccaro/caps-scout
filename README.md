@@ -466,4 +466,6 @@ python3 -m unittest discover -s tests -v
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+GPL-2.0. See [`LICENSE`](LICENSE) — required specifically as GPL v2 (not v3) by
+[Checkmk Exchange's terms of use](https://exchange.checkmk.com/terms), and it matches
+Checkmk core's own license.

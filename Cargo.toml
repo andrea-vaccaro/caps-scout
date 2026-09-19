@@ -2,7 +2,7 @@
 name = "caps-scout"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "GPL-2.0-only"
 description = "Checkmk agent plugin: discovers host capabilities (e.g. database engines) not already covered by an installed Checkmk plugin, and reports them as Checkmk host labels."
 
 [dependencies]
