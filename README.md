@@ -1,3 +1,5 @@
+<img src="docs/images/caps-scout-icon.svg" alt="caps-scout icon: an explorer's hat above binoculars" width="96" align="right">
+
 # caps-scout
 
 A Checkmk agent plugin that discovers host capabilities and reports them as Checkmk

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <title>caps-scout</title>
+  <rect width="64" height="64" rx="14" fill="#123126"/>
+  <path d="M20 26 23 12 29 9.5 32 13 35 9.5 41 12 44 26z" fill="#e8b85a"/>
+  <path d="M20.96 21.5H43.04L43.81 25.1H20.19z" fill="#7a4a14"/>
+  <rect x="10" y="26" width="44" height="5" rx="2.5" fill="#e8b85a"/>
+  <rect x="27" y="38" width="10" height="5.5" rx="2" fill="#efe6d2"/>
+  <circle cx="32" cy="36.8" r="2.7" fill="#efe6d2"/>
+  <circle cx="21" cy="44.5" r="10.3" fill="#efe6d2"/>
+  <circle cx="43" cy="44.5" r="10.3" fill="#efe6d2"/>
+  <circle cx="21" cy="44.5" r="6.2" fill="#6fe3bf"/>
+  <circle cx="43" cy="44.5" r="6.2" fill="#6fe3bf"/>
+  <circle cx="18.9" cy="42.4" r="1.5" fill="#ffffff"/>
+  <circle cx="40.9" cy="42.4" r="1.5" fill="#ffffff"/>
+</svg>
