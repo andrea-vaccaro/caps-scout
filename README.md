@@ -27,24 +27,29 @@ scope — is in [`docs/checkmk-label-catalog.md`](docs/checkmk-label-catalog.md)
 
 ## How it works
 
-caps-scout runs as a Checkmk agent plugin: the Checkmk agent executes it each cycle
-and includes its stdout in the agent output sent to the site. It prints a standard
-Checkmk `<<<labels:sep(0)>>>` section — a JSON object of label key/value pairs —
-which Checkmk's core turns into host labels automatically. No Checkmk-side plugin
-code is required.
+caps-scout runs as a Checkmk agent plugin and emits a standard
+Checkmk `<<<labels:sep(0)>>>` section — a JSON object of label key/value pairs — to
+enrich the monitored host's labels, with each label reflecting a detected
+capability. Checkmk's core turns this section into host labels automatically.
+caps-scout only emits a label when it finds something worth attention.
 
-**caps-scout only emits a label when it finds something worth attention — a detected
-capability. It prints nothing at all when it finds none of the capabilities it checks
-for.** This means empty output is the expected, healthy result on most hosts — it does
-*not* mean caps-scout failed to run. If you need to confirm caps-scout itself is
-executing (as opposed to confirming it found no capabilities), check the agent's own
-plugin execution log/output rather than looking for a caps-scout section.
+For SNMP devices — network gear, appliances, and other equipment with no Checkmk
+agent to run the Rust binary on — capability detection instead happens Checkmk-side:
+a Checkmk `agent_based` plugin fetches the two universal SNMPv2-MIB System-group
+scalars (`sysDescr`, `sysObjectID`) over the host's already-configured SNMP
+credentials and matches them against the same `detect=` conditions Checkmk's own SNMP
+device plugins use, emitting a `caps/snmp/<family>` label for each one that
+would apply. See [SNMP plugin-match labels](#snmp-plugin-match-labels) below.
+
+The Rust agent plugin itself can be deployed two ways: manually, by copying the
+compiled binary onto the host (see "Installing as a Checkmk agent plugin" below), or
+via a Checkmk Agent Bakery rule that bakes the binary onto the agent package for every
+host the rule covers — no manual copy step needed. See
+[Bakery rule for the agent plugin](#bakery-rule-for-the-agent-plugin) below.
 
 ### Scope
 
-Platforms built today: Linux and Windows (see Building, below). The OS probe (the
-last row of the table below) also recognizes macOS, Solaris, and AIX for when those
-targets are added.
+Platforms built today: Linux and Windows (see Building, below).
 
 Every label below is `"yes"`-valued and emitted only when the capability is found —
 see "How it works" above. Labels are emitted regardless of whether a corresponding
@@ -149,7 +154,7 @@ Drop the compiled binary into the host's Checkmk agent plugin directory:
 Make sure it's executable (Linux: `chmod +x`). The Checkmk agent will pick it up and
 run it on the next cycle.
 
-## Checkmk-side plugin (`checkmk_plugin/`)
+# caps-scout Checkmk-side plugin
 
 `checkmk_plugin/` packages three independent pieces into a single Checkmk MKP, all
 under the `caps_scout` plugin family:
@@ -167,7 +172,7 @@ works independently of the other two — enable only the parts you want.
 ### SNMP plugin-match labels
 
 This is a Checkmk-side `agent_based` plugin — not the Rust binary above — that emits
-`caps/snmp_plugin/<family>: "yes"` host labels identifying which of Checkmk's own
+`caps/snmp/<family>: "yes"` host labels identifying which of Checkmk's own
 SNMP device plugin families would actually attach to this host, so the label points
 straight at a plugin the user might go activate.
 
@@ -175,7 +180,7 @@ It fetches the two universal SNMPv2-MIB System-group scalars (`sysDescr`,
 `sysObjectID`) and, per family, replicates the exact `detect=` condition that
 family's own plugin uses to decide it applies — cited from Checkmk's source per
 function. See the module docstring in
-`checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/snmp_plugin_match.py` for
+`checkmk_plugin/cmk_addons/plugins/caps_scout/agent_based/snmp_match.py` for
 the full rationale, including where a family's real condition was simplified to
 avoid an extra per-vendor SNMP fetch.
 
@@ -204,123 +209,123 @@ family:
 
 | Family | Label | Matches |
 | --- | --- | --- |
-| Cisco | `caps/snmp_plugin/cisco` | `sysDescr` contains "cisco" |
-| Juniper | `caps/snmp_plugin/juniper` | `sysObjectID` starts with `.1.3.6.1.4.1.2636.1.1.1` (Junos), `.1.3.6.1.4.1.14525.3` (legacy Trapeze wifi), or `.1.3.6.1.4.1.3224.1` (ScreenOS/NetScreen) |
-| Fortinet | `caps/snmp_plugin/fortinet` | `sysObjectID` matches a FortiGate/FortiMail/FortiSandbox/FortiAuthenticator OID prefix |
-| Aruba | `caps/snmp_plugin/aruba` | `sysDescr` matches `Aruba.+2930M.*`, or `sysObjectID` starts with `.1.3.6.1.4.1.14823.1.1` (WLC) — only these two product lines, not Aruba's full catalog |
-| HP ProCurve | `caps/snmp_plugin/hp_procurve` | `sysObjectID` contains `.11.2.3.7.11` or `.11.2.3.7.8` |
-| Check Point | `caps/snmp_plugin/checkpoint` | `sysObjectID` starts with `.1.3.6.1.4.1.2620`, or `sysDescr` matches a Gaia/IPSO/`cpx` pattern |
-| Palo Alto | `caps/snmp_plugin/palo_alto` | `sysObjectID` contains `25461` |
-| F5 BIG-IP | `caps/snmp_plugin/f5_bigip` | `sysObjectID` contains `.1.3.6.1.4.1.3375.2` |
-| Acme Packet | `caps/snmp_plugin/acme` | sysObjectID under Acme Packet's enterprise OID |
-| ADVA | `caps/snmp_plugin/adva` | sysDescr equals "Fiber Service Platform F7" |
-| AKCP | `caps/snmp_plugin/akcp` | sysObjectID under AKCP's enterprise OID |
-| Alcatel | `caps/snmp_plugin/alcatel` | sysObjectID under either of Alcatel's two enterprise sub-branches |
-| APC | `caps/snmp_plugin/apc` | sysObjectID under APC's enterprise branch, or sysDescr contains "apc", or two NetBotz-specific OIDs, or the STS OID |
-| Arbor Networks | `caps/snmp_plugin/arbor` | sysDescr starts with "Peakflow" or "Pravail" |
-| Arris | `caps/snmp_plugin/arris` | sysObjectID equals Arris CMTS OID |
-| ATTO | `caps/snmp_plugin/atto` | sysObjectID under Atto's enterprise OID |
-| AudioCodes | `caps/snmp_plugin/audiocodes` | sysObjectID contains AudioCodes OID |
-| Avaya | `caps/snmp_plugin/avaya` | sysObjectID contains Avaya enterprise OID |
-| Barracuda | `caps/snmp_plugin/barracuda` | sysObjectID under net-snmp OID AND sysDescr contains "barracuda" |
-| Bintec/Teldat | `caps/snmp_plugin/bintec` | sysObjectID under Bintec/Teldat sub-branch (simplified to the branch prefix) |
-| IBM/Lenovo BladeCenter | `caps/snmp_plugin/blade` | sysDescr contains an IBM/Lenovo BladeCenter management-module string, or "bx600", or sysObjectID equals the BX OID |
-| BlueCat | `caps/snmp_plugin/bluecat` | sysObjectID equals BlueCat's OID |
-| Blue Coat | `caps/snmp_plugin/bluecoat` | sysObjectID contains Blue Coat's OID |
-| Brocade | `caps/snmp_plugin/brocade` | sysObjectID under either of Brocade's two enterprise sub-branches |
-| Bosch VIP (video/IP cameras) | `caps/snmp_plugin/bvip` | sysDescr contains flexidome/vip-x/dinion/autodome |
-| Casa Systems | `caps/snmp_plugin/casa` | sysObjectID under Casa's enterprise OID |
-| Ciena CES | `caps/snmp_plugin/ciena_ces` | sysObjectID under either of Ciena's two enterprise sub-branches |
-| IBM DataPower | `caps/snmp_plugin/datapower` | sysObjectID equals one of 3 IBM DataPower OIDs |
-| NetApp DataFort (Decru) | `caps/snmp_plugin/decru` | sysDescr contains "datafort" |
-| Didactum | `caps/snmp_plugin/didactum` | sysDescr contains "didactum" |
-| DOCSIS cable modem/CMTS | `caps/snmp_plugin/docsis` | sysObjectID equals one of 5 cable-modem/CMTS OIDs |
-| Eltek | `caps/snmp_plugin/eltek` | sysObjectID under Eltek's enterprise OID |
-| EMC Isilon/Data Domain | `caps/snmp_plugin/emc` | sysDescr contains "isilon" or starts with "Data Domain OS" |
-| Enterasys | `caps/snmp_plugin/enterasys` | sysObjectID under either of 2 Enterasys sub-branches |
-| Enviromux | `caps/snmp_plugin/enviromux` | sysObjectID under one of 5 Enviromux sub-branches |
-| Epson projector | `caps/snmp_plugin/epson` | sysObjectID contains "1248" |
-| FireEye | `caps/snmp_plugin/fireeye` | sysObjectID under FireEye's enterprise OID |
-| Fujitsu ETERNUS DX/AF | `caps/snmp_plugin/fjdarye` | sysObjectID equals one of 3 Fujitsu ETERNUS disk-array OIDs |
-| genua | `caps/snmp_plugin/genua` | sysDescr contains genuscreen/genubox/genucrypt |
-| Gude | `caps/snmp_plugin/gude` | sysObjectID under Gude's whole enterprise branch (simplified) |
-| H3C/3Com | `caps/snmp_plugin/h3c` | sysDescr contains "3com s" |
-| Hitachi HUS | `caps/snmp_plugin/hitachi` | sysDescr contains hm700/800/850/900, or sysObjectID under Hitachi's enterprise OID |
-| Hitachi HNAS | `caps/snmp_plugin/hitachi_hnas` | sysObjectID under HNAS's enterprise sub-branch |
-| HP (ProCurve model/EML tape library) | `caps/snmp_plugin/hp` | sysDescr contains "hp" and a specific ProCurve switch model, or sysObjectID equals the EML tape-library OID |
-| HP BladeSystem | `caps/snmp_plugin/hp_blade` | sysObjectID contains HP BladeSystem OID |
-| HP-UX | `caps/snmp_plugin/hpux` | sysDescr starts with "HP-UX" |
-| Huawei | `caps/snmp_plugin/huawei` | sysObjectID contains either of 2 Huawei sub-OIDs |
-| HW group | `caps/snmp_plugin/hwg` | sysDescr contains "hwg" or "STE2" |
-| Icom repeater | `caps/snmp_plugin/icom` | sysDescr contains "fr5000" |
-| Infoblox | `caps/snmp_plugin/infoblox` | sysDescr contains "infoblox" or sysObjectID under Infoblox's OID |
-| innovaphone | `caps/snmp_plugin/innovaphone` | sysObjectID equals innovaphone's OID |
-| Intel TrueScale | `caps/snmp_plugin/intel_true_scale` | sysObjectID under Intel's TrueScale OID |
-| ISPRO sensors | `caps/snmp_plugin/ispro` | sysObjectID under ISPRO sensors OID |
-| Janitza | `caps/snmp_plugin/janitza` | sysObjectID equals one of 3 Janitza OIDs |
-| Kemp LoadMaster | `caps/snmp_plugin/kemp_loadmaster` | sysObjectID equals either of 2 Kemp OIDs |
-| Kentix | `caps/snmp_plugin/kentix` | sysObjectID under Kentix's enterprise OID |
-| Knuerr | `caps/snmp_plugin/knuerr` | sysObjectID equals Knuerr's OID |
-| Kyocera printer | `caps/snmp_plugin/kyocera` | sysDescr contains "kyocera" |
-| Liebert/Emerson LGP | `caps/snmp_plugin/lgp` | sysObjectID equals a specific Liebert/Emerson sub-OID |
-| Liebert/Emerson | `caps/snmp_plugin/liebert` | sysObjectID under the same Liebert/Emerson sub-branch, broader prefix |
-| McAfee/Skyhigh Secure Gateway | `caps/snmp_plugin/mcafee` | sysDescr/sysObjectID match for Email/Web Gateway or its Skyhigh Secure rebrand |
-| Meinberg LANTIME | `caps/snmp_plugin/meinberg` | sysObjectID equals either of 2 Meinberg OIDs |
-| Cisco Meraki | `caps/snmp_plugin/meraki` | sysObjectID under Cisco Meraki's own enterprise OID (distinct from the main `cisco` family) |
-| MikroTik | `caps/snmp_plugin/mikrotik` | sysObjectID contains MikroTik's OID |
-| Moxa | `caps/snmp_plugin/moxa` | sysObjectID under Moxa's enterprise OID |
-| Avaya/Extreme VSP | `caps/snmp_plugin/netextreme` | sysObjectID under either of 2 Avaya/Extreme VSP sub-branches |
-| Netgear | `caps/snmp_plugin/netgear` | sysObjectID under Netgear's enterprise OID |
-| Citrix NetScaler/ADC | `caps/snmp_plugin/netscaler` | sysObjectID under Citrix NetScaler/ADC's OID |
-| Nimble Storage | `caps/snmp_plugin/nimble` | sysObjectID under Nimble Storage's OID |
-| Pandacom | `caps/snmp_plugin/pandacom` | sysObjectID equals Pandacom's OID |
-| Papouch TH2E | `caps/snmp_plugin/papouch` | sysDescr contains "th2e" AND sysObjectID starts with a specific value |
-| Perle | `caps/snmp_plugin/perle` | sysObjectID under Perle's enterprise OID |
-| pfSense | `caps/snmp_plugin/pfsense` | sysDescr contains "pfsense" |
-| Poseidon | `caps/snmp_plugin/poseidon` | sysObjectID under Poseidon's enterprise OID |
-| Ricoh/Canon printer | `caps/snmp_plugin/printer` | sysObjectID contains Ricoh's OID, or sysDescr contains "canon" |
-| Pulse Secure | `caps/snmp_plugin/pulse_secure` | sysObjectID contains Pulse Secure's OID |
-| Qlogic SANbox | `caps/snmp_plugin/qlogic` | sysObjectID under Qlogic's SANbox branch (simplified) |
-| QNAP | `caps/snmp_plugin/qnap` | sysDescr starts with "Linux TS-" or "NAS Q" |
-| Raritan | `caps/snmp_plugin/raritan` | sysObjectID equals Raritan's OID |
-| Rittal CMC | `caps/snmp_plugin/rittal` | sysObjectID contains one of 3 Rittal CMC OIDs, or sysDescr starts with "Rittal LCP" |
-| AVTECH Room Alert | `caps/snmp_plugin/roomalert` | sysObjectID contains AVTECH RoomAlert's OID (32E), or (OID contains + sysDescr contains "3S") for the 3S variant |
-| SafeNet HSM | `caps/snmp_plugin/safenet` | sysObjectID under SafeNet's own enterprise OID |
-| Sentry (Server Technology) PDU | `caps/snmp_plugin/sentry` | sysObjectID equals either of 2 Sentry PDU OIDs |
-| Silver Peak | `caps/snmp_plugin/silverpeak` | sysObjectID under Silver Peak's enterprise OID |
-| Siemens HiPath/OpenScape | `caps/snmp_plugin/sni_octopuse` | sysDescr contains "agent for hipath" |
-| Sophos | `caps/snmp_plugin/sophos` | sysObjectID contains Sophos's OID |
-| Riverbed Steelhead | `caps/snmp_plugin/steelhead` | sysObjectID under Riverbed Steelhead's OID |
-| Teracom TCW241 | `caps/snmp_plugin/teracom` | sysDescr contains "teracom" |
-| UPS (multi-vendor) | `caps/snmp_plugin/ups` | sysObjectID equals/starts-with one of ~19 UPS-vendor OIDs (APC, Liebert, Eaton, MGE, Tripplite, and more) |
-| Vutlan EMS | `caps/snmp_plugin/vutlan` | sysDescr contains "vutlan ems" |
-| Wagner Titanus | `caps/snmp_plugin/wagner` | sysObjectID equals either of 2 Wagner Titanus OIDs |
-| Watchdog Sensors | `caps/snmp_plugin/watchdog` | sysObjectID under either of 2 Watchdog OIDs |
-| W&T | `caps/snmp_plugin/wut` | sysObjectID under W&T's enterprise branch (simplified) |
-| Zebra printer | `caps/snmp_plugin/zebra` | sysDescr contains "zebra" |
-| BDT tape library | `caps/snmp_plugin/bdt_tape` | sysObjectID contains `.20884.77.83.1` (older) or `.20884.10893.2.101` (newer) |
-| BayTech/BlueNET PDU | `caps/snmp_plugin/bluenet` | sysObjectID starts with `.21695.1` or contains `.31770.2.1` |
-| CBL AirLaser | `caps/snmp_plugin/cbl` | sysDescr contains "airlaser" |
-| Cisco Secure Email/Web Manager | `caps/snmp_plugin/cisco_sma` | sysObjectID equals `.15497.1.1` — distinct from the main `cisco` family |
-| Climaveneta | `caps/snmp_plugin/climaveneta` | sysDescr equals "pCO Gateway" |
-| CoreProcess Secure | `caps/snmp_plugin/cpsecure` | sysObjectID equals `.26546.1.1.2` |
-| NetApp filer (ONTAP) | `caps/snmp_plugin/netapp` | sysDescr contains "ontap" or sysObjectID under NetApp's enterprise OID |
-| EMKA enclosure monitoring | `caps/snmp_plugin/emka` | sysDescr contains "emka" AND sysObjectID starts with EMKA's enterprise OID |
-| eWON industrial router | `caps/snmp_plugin/ewon` | sysObjectID equals `.8284.2.1` |
-| F5 rSeries | `caps/snmp_plugin/f5os_rseries` | sysDescr contains "rSeries" AND sysObjectID starts with `.12276.1.3.` — distinct from `f5_bigip` |
-| Hepta | `caps/snmp_plugin/hepta` | sysObjectID under Hepta's enterprise OID |
-| HPE/H3C switch | `caps/snmp_plugin/hp_hh3c` | sysObjectID under a distinct OID branch AND sysDescr contains "H3C" or "HPE" — distinct from `h3c` |
-| HP Modular Cooling System | `caps/snmp_plugin/hp_mcs` | sysObjectID under HP MCS's enterprise OID |
-| Infratec Plus RMS200 | `caps/snmp_plugin/infratec_plus` | sysObjectID equals Infratec Plus's OID |
-| IPR400 VoIP intercom | `caps/snmp_plugin/ipr400` | sysDescr starts with "ipr voip device ipr400" |
-| Orion UPS/power | `caps/snmp_plugin/orion` | sysObjectID under Orion's enterprise OID |
-| Packeteer PacketShaper | `caps/snmp_plugin/packeteer` | sysObjectID under Packeteer's enterprise OID |
-| SEH PSrv print server | `caps/snmp_plugin/seh` | sysObjectID contains SEH's OID |
-| Sensatronics (newer) | `caps/snmp_plugin/sensatronics` | sysObjectID equals Sensatronics's OID |
-| Sensatronics EM1 (older) | `caps/snmp_plugin/strem1` | sysDescr contains "Sensatronics EM1" |
-| 3Com SuperStack 3 | `caps/snmp_plugin/superstack3` | sysDescr contains "3com superstack 3" — distinct from `h3c`'s "3com s" |
-| Symantec/Broadcom Brightmail | `caps/snmp_plugin/sym_brightmail` | sysDescr contains "el5_sms" or "el6" |
-| Arista Networks | `caps/snmp_plugin/arista` | sysDescr starts with "arista networks" |
+| Cisco | `caps/snmp/cisco` | `sysDescr` contains "cisco" |
+| Juniper | `caps/snmp/juniper` | `sysObjectID` starts with `.1.3.6.1.4.1.2636.1.1.1` (Junos), `.1.3.6.1.4.1.14525.3` (legacy Trapeze wifi), or `.1.3.6.1.4.1.3224.1` (ScreenOS/NetScreen) |
+| Fortinet | `caps/snmp/fortinet` | `sysObjectID` matches a FortiGate/FortiMail/FortiSandbox/FortiAuthenticator OID prefix |
+| Aruba | `caps/snmp/aruba` | `sysDescr` matches `Aruba.+2930M.*`, or `sysObjectID` starts with `.1.3.6.1.4.1.14823.1.1` (WLC) — only these two product lines, not Aruba's full catalog |
+| HP ProCurve | `caps/snmp/hp_procurve` | `sysObjectID` contains `.11.2.3.7.11` or `.11.2.3.7.8` |
+| Check Point | `caps/snmp/checkpoint` | `sysObjectID` starts with `.1.3.6.1.4.1.2620`, or `sysDescr` matches a Gaia/IPSO/`cpx` pattern |
+| Palo Alto | `caps/snmp/palo_alto` | `sysObjectID` contains `25461` |
+| F5 BIG-IP | `caps/snmp/f5_bigip` | `sysObjectID` contains `.1.3.6.1.4.1.3375.2` |
+| Acme Packet | `caps/snmp/acme` | sysObjectID under Acme Packet's enterprise OID |
+| ADVA | `caps/snmp/adva` | sysDescr equals "Fiber Service Platform F7" |
+| AKCP | `caps/snmp/akcp` | sysObjectID under AKCP's enterprise OID |
+| Alcatel | `caps/snmp/alcatel` | sysObjectID under either of Alcatel's two enterprise sub-branches |
+| APC | `caps/snmp/apc` | sysObjectID under APC's enterprise branch, or sysDescr contains "apc", or two NetBotz-specific OIDs, or the STS OID |
+| Arbor Networks | `caps/snmp/arbor` | sysDescr starts with "Peakflow" or "Pravail" |
+| Arris | `caps/snmp/arris` | sysObjectID equals Arris CMTS OID |
+| ATTO | `caps/snmp/atto` | sysObjectID under Atto's enterprise OID |
+| AudioCodes | `caps/snmp/audiocodes` | sysObjectID contains AudioCodes OID |
+| Avaya | `caps/snmp/avaya` | sysObjectID contains Avaya enterprise OID |
+| Barracuda | `caps/snmp/barracuda` | sysObjectID under net-snmp OID AND sysDescr contains "barracuda" |
+| Bintec/Teldat | `caps/snmp/bintec` | sysObjectID under Bintec/Teldat sub-branch (simplified to the branch prefix) |
+| IBM/Lenovo BladeCenter | `caps/snmp/blade` | sysDescr contains an IBM/Lenovo BladeCenter management-module string, or "bx600", or sysObjectID equals the BX OID |
+| BlueCat | `caps/snmp/bluecat` | sysObjectID equals BlueCat's OID |
+| Blue Coat | `caps/snmp/bluecoat` | sysObjectID contains Blue Coat's OID |
+| Brocade | `caps/snmp/brocade` | sysObjectID under either of Brocade's two enterprise sub-branches |
+| Bosch VIP (video/IP cameras) | `caps/snmp/bvip` | sysDescr contains flexidome/vip-x/dinion/autodome |
+| Casa Systems | `caps/snmp/casa` | sysObjectID under Casa's enterprise OID |
+| Ciena CES | `caps/snmp/ciena_ces` | sysObjectID under either of Ciena's two enterprise sub-branches |
+| IBM DataPower | `caps/snmp/datapower` | sysObjectID equals one of 3 IBM DataPower OIDs |
+| NetApp DataFort (Decru) | `caps/snmp/decru` | sysDescr contains "datafort" |
+| Didactum | `caps/snmp/didactum` | sysDescr contains "didactum" |
+| DOCSIS cable modem/CMTS | `caps/snmp/docsis` | sysObjectID equals one of 5 cable-modem/CMTS OIDs |
+| Eltek | `caps/snmp/eltek` | sysObjectID under Eltek's enterprise OID |
+| EMC Isilon/Data Domain | `caps/snmp/emc` | sysDescr contains "isilon" or starts with "Data Domain OS" |
+| Enterasys | `caps/snmp/enterasys` | sysObjectID under either of 2 Enterasys sub-branches |
+| Enviromux | `caps/snmp/enviromux` | sysObjectID under one of 5 Enviromux sub-branches |
+| Epson projector | `caps/snmp/epson` | sysObjectID contains "1248" |
+| FireEye | `caps/snmp/fireeye` | sysObjectID under FireEye's enterprise OID |
+| Fujitsu ETERNUS DX/AF | `caps/snmp/fjdarye` | sysObjectID equals one of 3 Fujitsu ETERNUS disk-array OIDs |
+| genua | `caps/snmp/genua` | sysDescr contains genuscreen/genubox/genucrypt |
+| Gude | `caps/snmp/gude` | sysObjectID under Gude's whole enterprise branch (simplified) |
+| H3C/3Com | `caps/snmp/h3c` | sysDescr contains "3com s" |
+| Hitachi HUS | `caps/snmp/hitachi` | sysDescr contains hm700/800/850/900, or sysObjectID under Hitachi's enterprise OID |
+| Hitachi HNAS | `caps/snmp/hitachi_hnas` | sysObjectID under HNAS's enterprise sub-branch |
+| HP (ProCurve model/EML tape library) | `caps/snmp/hp` | sysDescr contains "hp" and a specific ProCurve switch model, or sysObjectID equals the EML tape-library OID |
+| HP BladeSystem | `caps/snmp/hp_blade` | sysObjectID contains HP BladeSystem OID |
+| HP-UX | `caps/snmp/hpux` | sysDescr starts with "HP-UX" |
+| Huawei | `caps/snmp/huawei` | sysObjectID contains either of 2 Huawei sub-OIDs |
+| HW group | `caps/snmp/hwg` | sysDescr contains "hwg" or "STE2" |
+| Icom repeater | `caps/snmp/icom` | sysDescr contains "fr5000" |
+| Infoblox | `caps/snmp/infoblox` | sysDescr contains "infoblox" or sysObjectID under Infoblox's OID |
+| innovaphone | `caps/snmp/innovaphone` | sysObjectID equals innovaphone's OID |
+| Intel TrueScale | `caps/snmp/intel_true_scale` | sysObjectID under Intel's TrueScale OID |
+| ISPRO sensors | `caps/snmp/ispro` | sysObjectID under ISPRO sensors OID |
+| Janitza | `caps/snmp/janitza` | sysObjectID equals one of 3 Janitza OIDs |
+| Kemp LoadMaster | `caps/snmp/kemp_loadmaster` | sysObjectID equals either of 2 Kemp OIDs |
+| Kentix | `caps/snmp/kentix` | sysObjectID under Kentix's enterprise OID |
+| Knuerr | `caps/snmp/knuerr` | sysObjectID equals Knuerr's OID |
+| Kyocera printer | `caps/snmp/kyocera` | sysDescr contains "kyocera" |
+| Liebert/Emerson LGP | `caps/snmp/lgp` | sysObjectID equals a specific Liebert/Emerson sub-OID |
+| Liebert/Emerson | `caps/snmp/liebert` | sysObjectID under the same Liebert/Emerson sub-branch, broader prefix |
+| McAfee/Skyhigh Secure Gateway | `caps/snmp/mcafee` | sysDescr/sysObjectID match for Email/Web Gateway or its Skyhigh Secure rebrand |
+| Meinberg LANTIME | `caps/snmp/meinberg` | sysObjectID equals either of 2 Meinberg OIDs |
+| Cisco Meraki | `caps/snmp/meraki` | sysObjectID under Cisco Meraki's own enterprise OID (distinct from the main `cisco` family) |
+| MikroTik | `caps/snmp/mikrotik` | sysObjectID contains MikroTik's OID |
+| Moxa | `caps/snmp/moxa` | sysObjectID under Moxa's enterprise OID |
+| Avaya/Extreme VSP | `caps/snmp/netextreme` | sysObjectID under either of 2 Avaya/Extreme VSP sub-branches |
+| Netgear | `caps/snmp/netgear` | sysObjectID under Netgear's enterprise OID |
+| Citrix NetScaler/ADC | `caps/snmp/netscaler` | sysObjectID under Citrix NetScaler/ADC's OID |
+| Nimble Storage | `caps/snmp/nimble` | sysObjectID under Nimble Storage's OID |
+| Pandacom | `caps/snmp/pandacom` | sysObjectID equals Pandacom's OID |
+| Papouch TH2E | `caps/snmp/papouch` | sysDescr contains "th2e" AND sysObjectID starts with a specific value |
+| Perle | `caps/snmp/perle` | sysObjectID under Perle's enterprise OID |
+| pfSense | `caps/snmp/pfsense` | sysDescr contains "pfsense" |
+| Poseidon | `caps/snmp/poseidon` | sysObjectID under Poseidon's enterprise OID |
+| Ricoh/Canon printer | `caps/snmp/printer` | sysObjectID contains Ricoh's OID, or sysDescr contains "canon" |
+| Pulse Secure | `caps/snmp/pulse_secure` | sysObjectID contains Pulse Secure's OID |
+| Qlogic SANbox | `caps/snmp/qlogic` | sysObjectID under Qlogic's SANbox branch (simplified) |
+| QNAP | `caps/snmp/qnap` | sysDescr starts with "Linux TS-" or "NAS Q" |
+| Raritan | `caps/snmp/raritan` | sysObjectID equals Raritan's OID |
+| Rittal CMC | `caps/snmp/rittal` | sysObjectID contains one of 3 Rittal CMC OIDs, or sysDescr starts with "Rittal LCP" |
+| AVTECH Room Alert | `caps/snmp/roomalert` | sysObjectID contains AVTECH RoomAlert's OID (32E), or (OID contains + sysDescr contains "3S") for the 3S variant |
+| SafeNet HSM | `caps/snmp/safenet` | sysObjectID under SafeNet's own enterprise OID |
+| Sentry (Server Technology) PDU | `caps/snmp/sentry` | sysObjectID equals either of 2 Sentry PDU OIDs |
+| Silver Peak | `caps/snmp/silverpeak` | sysObjectID under Silver Peak's enterprise OID |
+| Siemens HiPath/OpenScape | `caps/snmp/sni_octopuse` | sysDescr contains "agent for hipath" |
+| Sophos | `caps/snmp/sophos` | sysObjectID contains Sophos's OID |
+| Riverbed Steelhead | `caps/snmp/steelhead` | sysObjectID under Riverbed Steelhead's OID |
+| Teracom TCW241 | `caps/snmp/teracom` | sysDescr contains "teracom" |
+| UPS (multi-vendor) | `caps/snmp/ups` | sysObjectID equals/starts-with one of ~19 UPS-vendor OIDs (APC, Liebert, Eaton, MGE, Tripplite, and more) |
+| Vutlan EMS | `caps/snmp/vutlan` | sysDescr contains "vutlan ems" |
+| Wagner Titanus | `caps/snmp/wagner` | sysObjectID equals either of 2 Wagner Titanus OIDs |
+| Watchdog Sensors | `caps/snmp/watchdog` | sysObjectID under either of 2 Watchdog OIDs |
+| W&T | `caps/snmp/wut` | sysObjectID under W&T's enterprise branch (simplified) |
+| Zebra printer | `caps/snmp/zebra` | sysDescr contains "zebra" |
+| BDT tape library | `caps/snmp/bdt_tape` | sysObjectID contains `.20884.77.83.1` (older) or `.20884.10893.2.101` (newer) |
+| BayTech/BlueNET PDU | `caps/snmp/bluenet` | sysObjectID starts with `.21695.1` or contains `.31770.2.1` |
+| CBL AirLaser | `caps/snmp/cbl` | sysDescr contains "airlaser" |
+| Cisco Secure Email/Web Manager | `caps/snmp/cisco_sma` | sysObjectID equals `.15497.1.1` — distinct from the main `cisco` family |
+| Climaveneta | `caps/snmp/climaveneta` | sysDescr equals "pCO Gateway" |
+| CoreProcess Secure | `caps/snmp/cpsecure` | sysObjectID equals `.26546.1.1.2` |
+| NetApp filer (ONTAP) | `caps/snmp/netapp` | sysDescr contains "ontap" or sysObjectID under NetApp's enterprise OID |
+| EMKA enclosure monitoring | `caps/snmp/emka` | sysDescr contains "emka" AND sysObjectID starts with EMKA's enterprise OID |
+| eWON industrial router | `caps/snmp/ewon` | sysObjectID equals `.8284.2.1` |
+| F5 rSeries | `caps/snmp/f5os_rseries` | sysDescr contains "rSeries" AND sysObjectID starts with `.12276.1.3.` — distinct from `f5_bigip` |
+| Hepta | `caps/snmp/hepta` | sysObjectID under Hepta's enterprise OID |
+| HPE/H3C switch | `caps/snmp/hp_hh3c` | sysObjectID under a distinct OID branch AND sysDescr contains "H3C" or "HPE" — distinct from `h3c` |
+| HP Modular Cooling System | `caps/snmp/hp_mcs` | sysObjectID under HP MCS's enterprise OID |
+| Infratec Plus RMS200 | `caps/snmp/infratec_plus` | sysObjectID equals Infratec Plus's OID |
+| IPR400 VoIP intercom | `caps/snmp/ipr400` | sysDescr starts with "ipr voip device ipr400" |
+| Orion UPS/power | `caps/snmp/orion` | sysObjectID under Orion's enterprise OID |
+| Packeteer PacketShaper | `caps/snmp/packeteer` | sysObjectID under Packeteer's enterprise OID |
+| SEH PSrv print server | `caps/snmp/seh` | sysObjectID contains SEH's OID |
+| Sensatronics (newer) | `caps/snmp/sensatronics` | sysObjectID equals Sensatronics's OID |
+| Sensatronics EM1 (older) | `caps/snmp/strem1` | sysDescr contains "Sensatronics EM1" |
+| 3Com SuperStack 3 | `caps/snmp/superstack3` | sysDescr contains "3com superstack 3" — distinct from `h3c`'s "3com s" |
+| Symantec/Broadcom Brightmail | `caps/snmp/sym_brightmail` | sysDescr contains "el5_sms" or "el6" |
+| Arista Networks | `caps/snmp/arista` | sysDescr starts with "arista networks" |
 
 Check Point and F5 BIG-IP's real `detect=` conditions (and most of the rows above)
 also AND in a second, vendor-specific OID beyond `sysDescr`/`sysObjectID`; that
@@ -341,8 +346,8 @@ they're two independent sources that don't otherwise meet anywhere:
   labels), and filters it down to the `caps/*` keys.
 - The SNMP plugin-match labels: those are computed by an SNMP section's
   `host_label_function`, not written into the `labels` agent section at all, so
-  this plugin also subscribes to the raw `caps_scout_snmp_plugin_match` SNMP
-  section directly and calls `host_label_snmp_plugin_match` on it, reusing the
+  this plugin also subscribes to the raw `caps_scout_snmp_match` SNMP
+  section directly and calls `host_label_snmp_match` on it, reusing the
   same per-family detection logic rather than re-implementing it.
 
 Either source can be absent for a given host — a pure-agent host has no SNMP
@@ -356,24 +361,7 @@ The details render as a two-column **Capability / Rules** table, one row per lab
 with only a row divider drawn between rows — never a column divider between the two
 cells — so it reads as a table without looking like a spreadsheet.
 
-**Logos.** The Capability cell shows that engine's actual logo next to a
-human-readable name (e.g. the Docker whale next to "Docker") instead of the raw
-`caps/container/docker`-style key, for every label in this README's "Detected
-capabilities" table, plus every one of the 117 `caps/snmp_plugin/<family>` labels
-from the SNMP plugin-match table above — sourced from Simple Icons/Devicon/Font
-Awesome Free, inlined as static SVG, no runtime fetch (see
-`DISPLAY_NAME_BY_LABEL`/`ICON_BY_LABEL` in `capabilities_scout.py`). Real brand
-marks (Cisco, Huawei, Netgear, MikroTik, pfSense, and many more) come first;
-where a specific product has none but its actual current owning company does
-(verified, not assumed from the name — e.g. Dell for EMC, NetApp for Decru,
-Schneider Electric for APC), that company's mark is reused instead; everything
-else falls back to a small generic glyph by category — network/telecom
-appliance, environmental/power-quality sensor, UPS/PDU power, or printer — the
-same tier of fallback already used for HAProxy/Varnish/CUPS/NFS/ISC DHCP. Any
-future/unrecognized `caps/*` label outside both tables falls back to the raw
-label key, no icon.
-
-**"Add rule" chips.** The Rules cell lists every Checkmk agent-bakery rule that applies
+run **"Add rule" chips.** The Rules cell lists every Checkmk agent-bakery rule that applies
 to that capability (the rule that deploys or configures the plugin actually monitoring
 that engine — `mk_postgres`, `apache_status`, `mk_docker`, and so on; see
 `BAKERY_RULES_BY_LABEL` in `capabilities_scout.py` for the full, deliberately
@@ -421,7 +409,7 @@ output was truncated, with a link in that warning message itself; clicking it go
 straight to **Setup → Global settings → "Maximum long output size"**, where raising
 the value (in bytes) is the fix — there's nothing to change in this plugin.
 
-### Bakery rule for the agent plugin
+## Bakery rule for the agent plugin
 
 `checkmk_plugin/cmk_addons/plugins/caps_scout/bakery/caps_scout.py` deploys the Rust
 agent plugin itself via Checkmk's Agent Bakery — an alternative to the manual
@@ -453,7 +441,7 @@ After enabling the rule, "bake" and "sign" the agent package (Setup → Agents �
 "Bake and sign agents", or the CLI `cmk-agent-ctl`/`cmk --bake-agents` equivalent)
 and activate changes, same as for any other bakery rule.
 
-### Building and installing the MKP
+## Building and installing the MKP
 
 Pre-built MKPs are attached to each [GitHub Release](https://github.com/andrea-vaccaro/caps-scout/releases)
 — download the `.mkp` for the version you want and skip straight to `mkp add`
@@ -480,10 +468,10 @@ Bumping the version on every run matters: the site's package manager keys
 installed packages by `(name, version)`, so re-adding/enabling an already-installed
 version number is a no-op and silently keeps the old content.
 
-### Running the tests
+## Running the tests
 
-Unit tests for the SNMP plugin's `parse_snmp_plugin_match`/
-`host_label_snmp_plugin_match` functions, and for the Capabilities Scout service's
+Unit tests for the SNMP plugin's `parse_snmp_match`/
+`host_label_snmp_match` functions, and for the Capabilities Scout service's
 discovery/check functions, live in `checkmk_plugin/tests/` and run with the standard
 library alone — no Checkmk installation or extra dependency needed.
 `tests/_cmk_stub.py` fakes the handful of `cmk.agent_based.v2` names these plugins
@@ -494,8 +482,6 @@ cd checkmk_plugin
 python3 -m unittest discover -s tests -v
 ```
 
-## License
+# License
 
-GPL-2.0. See [`LICENSE`](LICENSE) — required specifically as GPL v2 (not v3) by
-[Checkmk Exchange's terms of use](https://exchange.checkmk.com/terms), and it matches
-Checkmk core's own license.
+GPL-2.0. See [`LICENSE`](LICENSE)

@@ -19,7 +19,7 @@ from cmk_addons.plugins.caps_scout.agent_based.capabilities_scout import (  # no
     check_capabilities_scout,
     discover_capabilities_scout,
 )
-from cmk_addons.plugins.caps_scout.agent_based.snmp_plugin_match import (  # noqa: E402
+from cmk_addons.plugins.caps_scout.agent_based.snmp_match import (  # noqa: E402
     SysInfo,
     _FAMILY_DETECTORS,
 )
@@ -40,7 +40,7 @@ class TestDiscoverCapabilitiesScout(unittest.TestCase):
         services = list(discover_capabilities_scout(section, None))
         self.assertEqual(len(services), 1)
 
-    def test_service_discovered_from_snmp_plugin_match_alone(self):
+    def test_service_discovered_from_snmp_match_alone(self):
         services = list(discover_capabilities_scout(None, CISCO_ASA_SYSINFO))
         self.assertEqual(len(services), 1)
 
@@ -65,14 +65,14 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
         self.assertEqual(result.state, State.OK)
         self.assertEqual(result.summary, "caps/db/postgres, caps/web/apache")
 
-    def test_summary_includes_snmp_plugin_match_labels(self):
+    def test_summary_includes_snmp_match_labels(self):
         section_labels = {"caps/db/oracle": "yes"}
         [result] = check_capabilities_scout(section_labels, CISCO_ASA_SYSINFO)
-        self.assertEqual(result.summary, "caps/db/oracle, caps/snmp_plugin/cisco")
+        self.assertEqual(result.summary, "caps/db/oracle, caps/snmp/cisco")
 
-    def test_snmp_plugin_match_labels_alone_are_shown_without_an_agent_section(self):
+    def test_snmp_match_labels_alone_are_shown_without_an_agent_section(self):
         [result] = check_capabilities_scout(None, CISCO_ASA_SYSINFO)
-        self.assertEqual(result.summary, "caps/snmp_plugin/cisco")
+        self.assertEqual(result.summary, "caps/snmp/cisco")
 
     def test_details_render_a_table_with_capability_and_rules_headers(self):
         section = {"caps/db/postgres": "yes"}
@@ -159,35 +159,35 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
         self.assertIn("&mdash;", result.details)
         self.assertNotIn("Add rule", result.details)
 
-    def test_details_render_a_logo_for_an_snmp_plugin_match_label(self):
+    def test_details_render_a_logo_for_an_snmp_match_label(self):
         [result] = check_capabilities_scout(None, CISCO_ASA_SYSINFO)
         self.assertIn("<svg", result.details)
         self.assertIn("Cisco", result.details)
-        self.assertNotIn("caps/snmp_plugin/cisco", result.details)
+        self.assertNotIn("caps/snmp/cisco", result.details)
 
-    def test_details_show_an_em_dash_for_an_snmp_plugin_match_label(self):
+    def test_details_show_an_em_dash_for_an_snmp_match_label(self):
         [result] = check_capabilities_scout(None, CISCO_ASA_SYSINFO)
         self.assertIn("&mdash;", result.details)
         self.assertNotIn("Add rule", result.details)
 
     def test_details_render_the_generic_network_glyph_for_snmp_families_with_no_brand_mark(self):
-        section = {"caps/snmp_plugin/aruba": "yes", "caps/snmp_plugin/checkpoint": "yes"}
+        section = {"caps/snmp/aruba": "yes", "caps/snmp/checkpoint": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("Aruba Networks", result.details)
         self.assertIn("Check Point", result.details)
         self.assertEqual(result.details.count("<svg"), 2)
 
-    def test_details_show_the_raw_key_for_an_unrecognized_snmp_plugin_match_family(self):
+    def test_details_show_the_raw_key_for_an_unrecognized_snmp_match_family(self):
         # aruba and checkpoint get the generic network glyph, not the raw key -
         # this guards the true no-icon-at-all fallback, using a label no ICON_BY_LABEL
         # entry will ever cover.
-        section = {"caps/snmp_plugin/made_up_family": "yes"}
+        section = {"caps/snmp/made_up_family": "yes"}
         [result] = check_capabilities_scout(section, None)
-        self.assertIn("caps/snmp_plugin/made_up_family", result.details)
+        self.assertIn("caps/snmp/made_up_family", result.details)
         self.assertNotIn("<svg", result.details)
 
     def test_details_render_a_real_brand_mark_for_huawei(self):
-        section = {"caps/snmp_plugin/huawei": "yes"}
+        section = {"caps/snmp/huawei": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("Huawei", result.details)
         self.assertIn("<svg", result.details)
@@ -196,20 +196,20 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
         # APC (power/UPS/PDU vendor) was acquired by Schneider Electric in 2007 -
         # no dedicated APC mark exists in Simple Icons, so it reuses Schneider
         # Electric's, the same company-mark tier as Dell for EMC or NetApp for Decru.
-        section = {"caps/snmp_plugin/apc": "yes"}
+        section = {"caps/snmp/apc": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("APC", result.details)
         self.assertIn("<svg", result.details)
 
     def test_details_render_a_generic_glyph_for_an_unbranded_sensor_vendor(self):
-        section = {"caps/snmp_plugin/akcp": "yes"}
+        section = {"caps/snmp/akcp": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("AKCP", result.details)
         self.assertIn("<svg", result.details)
 
-    def test_every_snmp_plugin_match_family_has_a_display_name_and_icon(self):
+    def test_every_snmp_match_family_has_a_display_name_and_icon(self):
         for family, _ in _FAMILY_DETECTORS:
-            label = f"caps/snmp_plugin/{family}"
+            label = f"caps/snmp/{family}"
             self.assertIn(label, DISPLAY_NAME_BY_LABEL, f"missing display name for {family}")
             self.assertIn(label, ICON_BY_LABEL, f"missing icon for {family}")
 
@@ -217,13 +217,13 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
         # netapp (the df_netapp SNMP family) reuses the same NetApp mark already
         # used for decru, since it's the same company - even more directly this
         # time, it IS NetApp.
-        section = {"caps/snmp_plugin/netapp": "yes"}
+        section = {"caps/snmp/netapp": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("NetApp", result.details)
         self.assertIn("<svg", result.details)
 
     def test_details_render_a_real_brand_mark_for_sym_brightmail(self):
-        section = {"caps/snmp_plugin/sym_brightmail": "yes"}
+        section = {"caps/snmp/sym_brightmail": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("Symantec", result.details)
         self.assertIn("<svg", result.details)
@@ -231,7 +231,7 @@ class TestCheckCapabilitiesScout(unittest.TestCase):
     def test_details_render_a_generic_glyph_for_arista(self):
         # No dedicated Arista Networks mark in Simple Icons/Devicon/Font Awesome
         # Free (checked) - falls back to the generic network glyph.
-        section = {"caps/snmp_plugin/arista": "yes"}
+        section = {"caps/snmp/arista": "yes"}
         [result] = check_capabilities_scout(section, None)
         self.assertIn("Arista", result.details)
         self.assertIn("<svg", result.details)

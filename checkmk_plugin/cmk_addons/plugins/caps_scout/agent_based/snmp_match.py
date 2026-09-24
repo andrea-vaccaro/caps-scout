@@ -1139,18 +1139,18 @@ _FAMILY_DETECTORS: Sequence[tuple[str, Callable[[SysInfo], bool]]] = (
 )
 
 
-def parse_snmp_plugin_match(string_table: StringTable) -> SysInfo | None:
+def parse_snmp_match(string_table: StringTable) -> SysInfo | None:
     if not string_table:
         return None
     sys_descr, sys_object_id = string_table[0]
     return SysInfo(sys_descr=sys_descr.strip(), sys_object_id=sys_object_id.strip())
 
 
-def host_label_snmp_plugin_match(section: SysInfo) -> HostLabelGenerator:
+def host_label_snmp_match(section: SysInfo) -> HostLabelGenerator:
     """
     Labels:
 
-        caps/snmp_plugin/<family>:
+        caps/snmp/<family>:
             One label per matching vendor family (117 covered - see
             `_FAMILY_DETECTORS` above) whose real Checkmk plugin would
             likely attach to this device - see the per-family functions
@@ -1158,13 +1158,13 @@ def host_label_snmp_plugin_match(section: SysInfo) -> HostLabelGenerator:
     """
     for family, is_match in _FAMILY_DETECTORS:
         if is_match(section):
-            yield HostLabel(f"caps/snmp_plugin/{family}", "yes")
+            yield HostLabel(f"caps/snmp/{family}", "yes")
 
 
-snmp_section_caps_scout_snmp_plugin_match = SimpleSNMPSection(
-    name="caps_scout_snmp_plugin_match",
-    parse_function=parse_snmp_plugin_match,
-    host_label_function=host_label_snmp_plugin_match,
+snmp_section_caps_scout_snmp_match = SimpleSNMPSection(
+    name="caps_scout_snmp_match",
+    parse_function=parse_snmp_match,
+    host_label_function=host_label_snmp_match,
     fetch=SNMPTree(
         base=".1.3.6.1.2.1.1",
         oids=["1", "2"],
