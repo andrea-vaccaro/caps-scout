@@ -17,11 +17,13 @@ separate chapters:
 
 Both chapters survey the same underlying source (`cmk/plugins/`, source:
 `~/workspace/check_mk/cmk/plugins`) but at different points in time and for
-different purposes, which is why their totals don't quite match: the Agent
-plugins survey was taken 2026-09-02 and found **280** families (corrected from
-an original count of 279 - `aws` was present in the source tree but missed by
-the original survey pass). A separate, independent, exhaustive re-scan done
-later for the SNMP plugins chapter, against an earlier checkout dated
+different purposes. The Agent plugins survey was taken 2026-09-02 and found
+**280** families (corrected from an original count of 279 - `aws` was present
+in the source tree but missed by the original survey pass); of those, **151**
+are SNMP-monitored network/hardware appliances, excluded entirely from the
+Agent plugins chapter's own totals below to avoid double-counting - they're
+tracked exclusively in the SNMP plugins coverage chapter. That chapter's own
+independent, exhaustive re-scan, done later against an earlier checkout dated
 2026-08-27, found **279** real directories (a naive `ls | wc -l` gives 281, but
 two entries, `BUILD` and `OWNERS`, aren't plugin families at all) - `aws`
 doesn't exist as a directory in that earlier checkout at all, so that 279 most
@@ -56,19 +58,20 @@ already-configured connection, never detects the unconfigured presence of.
 This is the same gap the DB-engine probes (`oracle`, `mysql`, `postgres`,
 `mssql`, `mongodb`, `redis`, `db2`, `sap_hana`) already fill.
 
-**Classification rule**, applied to every family:
+**Classification rule**, applied to every family that isn't already tracked by
+the [SNMP plugins coverage](#snmp-plugins-coverage) chapter - SNMP-monitored
+network/hardware appliances are excluded from this chapter's totals entirely,
+to avoid double-counting:
 
 1. **Covered** - caps-scout already has a probe for it.
 2. **Not covered** - a real gap of the same shape as the DB engines: a local
    software engine/daemon that Checkmk only monitors via a configured
    connection, never detects the presence of.
-3. **Not applicable** - everything else: SNMP-monitored network/hardware
-   appliances (see the [SNMP plugins coverage](#snmp-plugins-coverage) chapter
-   instead), OS built-in resource metrics, per-OS agent sections, generic
-   utilities/active checks, cloud/API-managed products, centrally-managed
-   endpoint security, capabilities Checkmk *already* presence-detects
-   natively, and local software with no reliable single-process signature to
-   match on.
+3. **Not applicable** - everything else: OS built-in resource metrics, per-OS
+   agent sections, generic utilities/active checks, cloud/API-managed
+   products, centrally-managed endpoint security, capabilities Checkmk
+   *already* presence-detects natively, and local software with no reliable
+   single-process signature to match on.
 
 ### Summary
 
@@ -76,8 +79,8 @@ This is the same gap the DB-engine probes (`oracle`, `mysql`, `postgres`,
 |---|---|
 | Covered | 41 |
 | Not covered | 0 |
-| Not applicable | 239 |
-| **Total surveyed** | **280** |
+| Not applicable | 88 |
+| **Total surveyed** | **129** |
 
 ### Covered (41)
 
@@ -201,19 +204,13 @@ caps-scout-shaped presence gap has since been implemented and moved into
 survey (e.g. after a new Checkmk plugin family is added upstream) may find new
 candidates here.
 
-### Not applicable (239)
+### Not applicable (88)
 
-239 families, grouped by why they fall outside this chapter's scope. The
-largest sub-bucket - SNMP-monitored network/hardware appliances - is detailed
-in its own [SNMP plugins coverage](#snmp-plugins-coverage) chapter instead of
-being repeated here; the remaining 88 are grouped below by reason.
-
-- **SNMP-monitored network/hardware appliances & environmental sensors**
-  (151) - see the [SNMP plugins coverage](#snmp-plugins-coverage) chapter for
-  the full breakdown (117 covered, 23 researched but not covered, plus 139
-  more `cmk/plugins/` directories confirmed to have no SNMP signal at all -
-  that chapter's own totals are drawn from a separate, exhaustive re-scan, so
-  they don't map 1:1 onto this bucket's original 151 names).
+88 families, grouped by why they fall outside this chapter's scope.
+SNMP-monitored network/hardware appliances are tracked separately - see the
+[SNMP plugins coverage](#snmp-plugins-coverage) chapter for that breakdown
+(117 covered, 23 researched but not covered, plus 21 more `cmk/plugins/`
+directories confirmed to have no SNMP signal at all).
 
 - **OS built-in resource metrics** (23) - always-there facts about any host,
   not "engine presence": `apt`, `cpu`, `df`, `diskstat`, `dmi`, `dmraid`,
@@ -297,7 +294,10 @@ check.
 
 An exhaustive pass over all 279 real directories under Checkmk's
 `cmk/plugins/` (a naive `ls | wc -l` gives 281, but two entries, `BUILD` and
-`OWNERS`, aren't plugin families at all) resolved the full picture.
+`OWNERS`, aren't plugin families at all) resolved the full picture. 118 of
+those directories are agent plugin families already classified in the
+[Agent plugins coverage](#agent-plugins-coverage) chapter, so they're excluded
+from this chapter's totals entirely, to avoid double-counting.
 
 ### Summary
 
@@ -305,8 +305,8 @@ An exhaustive pass over all 279 real directories under Checkmk's
 |---|---|
 | Covered | 117 |
 | Not covered | 23 |
-| Not applicable | 139 |
-| **Total surveyed** | **279** |
+| Not applicable | 21 |
+| **Total surveyed** | **161** |
 
 ### Covered (117)
 
@@ -534,17 +534,18 @@ An exhaustive pass over all 279 real directories under Checkmk's
 | `carel` | Excluded | Reduces to the same generic pCO-embedded-controller platform shared with the already-covered `climaveneta` |
 | `security_master` | Ambiguous | Cited source is missing the leading `.` every real `sysObjectID` value has — looks like an upstream Checkmk bug that would never fire if copied faithfully; deferred pending a decision on whether to replicate the bug or fix it |
 
-### Not applicable (139)
+### Not applicable (21)
 
-139 directories confirmed to have no SNMP `detect=`/`DETECT_*` condition
+21 directories confirmed to have no SNMP `detect=`/`DETECT_*` condition
 anywhere - special agents, agent-section-only plugins that parse the agent's
-own stdout, or shared library/support code. Derived directly from the real
-`cmk/plugins/` directory listing (279 total) minus the 140 directories
-accounted for by the 117 Covered + 23 Not covered families above (five of
-those 140 don't map 1:1 onto a family name of the same spelling - `meraki`
-and the generic cisco/fortinet checks come from the `network` directory's
-shared `lib.py`; `intel_true_scale` is directory `intel`; `oracle_snmp` is
-directory `oracle`; `netapp` is directory `df`; `arista` is directory
-`entity_sensors`):
+own stdout, or shared library/support code - and not already classified in
+the [Agent plugins coverage](#agent-plugins-coverage) chapter. Derived from
+the real `cmk/plugins/` directory listing (279 total) minus the 140
+directories accounted for by the 117 Covered + 23 Not covered families above
+(five of those 140 don't map 1:1 onto a family name of the same spelling -
+`meraki` and the generic cisco/fortinet checks come from the `network`
+directory's shared `lib.py`; `intel_true_scale` is directory `intel`;
+`oracle_snmp` is directory `oracle`; `netapp` is directory `df`; `arista` is
+directory `entity_sensors`), minus the 118 agent plugin families:
 
-`activemq`, `aix`, `alertmanager`, `allnet`, `allnet_ip_sensoric`, `apache`, `appdynamics`, `apt`, `arcserve`, `areca`, `azure`, `azure_status`, `broadcom_storage`, `cadvisor`, `ceph`, `checkmk`, `cisco_meraki`, `citrix`, `collection`, `corosync`, `couchbase`, `cpu`, `cups`, `datadog`, `db2`, `ddn_s2a`, `diagnostics`, `diskstat`, `dmi`, `dmraid`, `dns`, `docker`, `drbd`, `emailchecks`, `epower`, `extremecloud_iq`, `filehandler`, `fileinfo`, `files`, `form_submit`, `fritzbox`, `generic_agent_options`, `haproxy`, `hivemanager`, `hivemanager_ng`, `hp_msa`, `hpe_3par`, `hyperv`, `hyperv_cluster`, `ibm`, `ibmsvc`, `inotify`, `isc`, `jar_signature`, `jira`, `job`, `jolokia`, `kaspersky`, `kernel`, `ldapcheck`, `libelle`, `lnx`, `logins`, `lparstat`, `lsi`, `lvm`, `lxc`, `mailman_lists`, `mdraid`, `memory`, `mobileiron`, `mongodb`, `monitoring_plugins`, `mounts`, `mqtt`, `msexch`, `msoffice`, `mssql`, `mtr`, `mysql`, `nfsexports`, `nginx`, `ntp`, `nullmailer`, `nvidia`, `omd`, `openhardwaremonitor`, `plesk`, `podman`, `postfix`, `postgres`, `prometheus`, `ps`, `pvecm`, `qmail_stats`, `redis`, `ruckus_spot`, `salesforce`, `sansymphony`, `sap`, `sap_hana`, `scaleio`, `sftp`, `siemens_plc`, `skype`, `smart`, `smb`, `smtp`, `solaris`, `sql`, `ssh`, `statgrab`, `storeonce`, `stulz`, `suseconnect`, `sylo`, `symantec`, `systemd`, `tcp`, `time`, `tinkerforge`, `traceroute`, `tsm`, `uniserv`, `unitrends`, `uptime`, `varnish`, `vbox`, `veeam`, `veritas`, `vms`, `vnx_quotas`, `vxvm`, `windows`, `zerto`, `zfs`, `zorp`, `zpool`, `zypper`
+`allnet`, `allnet_ip_sensoric`, `areca`, `broadcom_storage`, `citrix`, `ddn_s2a`, `epower`, `fritzbox`, `hp_msa`, `hpe_3par`, `ibm`, `ibmsvc`, `lsi`, `nvidia`, `openhardwaremonitor`, `siemens_plc`, `storeonce`, `stulz`, `tinkerforge`, `unitrends`, `vnx_quotas`

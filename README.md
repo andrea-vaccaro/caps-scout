@@ -13,17 +13,14 @@ monitoring engines, collaboration platforms, and cloud VM provisioning — see
 
 Checkmk ships dedicated plugins for monitoring specific, already-configured
 integrations (a database connection, a web server's status page, ...), but nothing
-detects *which* of those engines are actually present on a host in the first place.
+detects *which* of those engines are actually present on a host to suggest which
+plugins to install.
 
 caps-scout fills that gap: it looks for the engine itself — a running process, or,
 where a process match isn't reliable, a file or directory only that engine would
 create — and emits a host label for each one it finds, regardless of whether a
 corresponding official Checkmk plugin is already installed and monitoring it — so
 the capability is visible on the host either way.
-
-Full design rationale — including a survey of every host/service label Checkmk's
-built-in plugins currently generate, and the decisions that shaped this project's
-scope — is in [`docs/checkmk-label-catalog.md`](docs/checkmk-label-catalog.md).
 
 ## How it works
 
@@ -190,9 +187,11 @@ check, so no credentials are entered or duplicated anywhere in this plugin.
 
 An exhaustive pass over all 279 real directories under Checkmk's `cmk/plugins/`
 (a naive `ls | wc -l` gives 281, but two entries, `BUILD` and `OWNERS`, aren't
-plugin families at all) resolved the full picture: this covers **117** of them;
-**139** have no SNMP `detect=` condition anywhere and are confirmed out of
-scope (special agents, agent-section-only plugins, shared library code); **22**
+plugin families at all) resolved the full picture. **118** of them are agent
+plugin families, covered by the Rust agent plugin's own survey instead, so
+they're not counted here. Of the remaining 161, this covers **117**; **21** have
+no SNMP `detect=` condition anywhere and are confirmed out of scope (special
+agents, agent-section-only plugins, shared library code); **22**
 were researched and deliberately excluded because their real Checkmk condition
 isn't meaningfully expressible via `sysDescr`/`sysObjectID` alone — either it
 depends on a third OID this plugin doesn't fetch (`hp_proliant`, `oracle_snmp`,
