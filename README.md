@@ -2,12 +2,28 @@
 
 # caps-scout
 
-A Checkmk agent plugin that discovers host capabilities and reports them as Checkmk
-host labels, as `caps/<capability>`. The goal is to eventually cover most of
-Checkmk's official plugin surface; the current coverage spans databases, web/app
-servers, containers and virtualization, clustering/HA, backup/DR, messaging and
-monitoring engines, collaboration platforms, and cloud VM provisioning — see
-[Detected capabilities](#detected-capabilities) below for the full list.
+A Checkmk agent plugin that discovers host capabilities and reports each one as a
+Checkmk host label of the form `caps/<capability>`, so you can see at a glance which
+Checkmk plugins are worth installing on that host. The goal is to eventually cover
+most of what Checkmk's official plugins monitor. Coverage today includes databases,
+web and application servers, containers and virtualization, clustering and HA,
+backup and DR, messaging and monitoring engines, collaboration platforms, and cloud
+VM provisioning. See [Detected capabilities](#detected-capabilities) below for the
+full list.
+
+**Prerequisites.** For the Capabilities Scout service to render correctly, set these
+two things in Checkmk:
+
+- **Escape HTML in service output:** add a rule under Setup → Services → Service
+  monitoring rules → "Escape HTML in service output", set it to "Don't escape HTML",
+  limit it to the `Capabilities Scout` service, and activate changes. Without it, the
+  logos and "Add rule" links show up as raw HTML text.
+- **Maximum long output size:** on hosts with many capabilities, raise Setup → Global
+  settings → "Maximum long output size" above its default of 2000 bytes. Otherwise
+  the service details are cut off.
+
+See [Capabilities Scout service](#capabilities-scout-service) below for why each one
+is needed.
 
 ![The Capabilities Scout service, listing each detected capability with its logo and an "Add rule" button for the matching Checkmk bakery rule](docs/images/capabilities-scout-service.png)
 
