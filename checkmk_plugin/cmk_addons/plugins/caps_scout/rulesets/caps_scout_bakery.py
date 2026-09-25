@@ -5,7 +5,7 @@
 
 from collections.abc import Mapping
 
-from cmk.rulesets.v1 import Help, Title
+from cmk.rulesets.v1 import Help, Label, Title
 from cmk.rulesets.v1.form_specs import (
     CascadingSingleChoice,
     CascadingSingleChoiceElement,
@@ -49,7 +49,9 @@ def _form_spec_agent_config_caps_scout() -> Dictionary:
                         CascadingSingleChoiceElement(
                             name="sync",
                             title=Title("Deploy caps-scout and run it synchronously"),
-                            parameter_form=FixedValue(value=None),
+                            parameter_form=FixedValue(
+                                value=None, label=Label("on every agent run")
+                            ),
                         ),
                         CascadingSingleChoiceElement(
                             name="cached",
@@ -64,7 +66,9 @@ def _form_spec_agent_config_caps_scout() -> Dictionary:
                         CascadingSingleChoiceElement(
                             name="do_not_deploy",
                             title=Title("Do not deploy caps-scout"),
-                            parameter_form=FixedValue(value=None),
+                            parameter_form=FixedValue(
+                                value=None, label=Label("not included in the agent package")
+                            ),
                         ),
                     ),
                     prefill=DefaultValue("sync"),
