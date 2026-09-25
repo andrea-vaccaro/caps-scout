@@ -1,7 +1,7 @@
 {
   "title": "caps-scout",
   "name": "caps-scout",
-  "description": "Host capability discovery: ships a 'Capabilities Scout' service listing every caps-scout caps/* host label, from both the Rust agent plugin (databases, web/app servers, containers, clustering, backup, and more - see the README) and the SNMP plugin-match labels below (each with an 'Add rule' chip to the matching bakery rule where one exists). Also emits caps/snmp/<family> host labels identifying which of Checkmk's SNMP device plugin families (cisco, juniper, fortinet, aruba, hp_procurve, checkpoint, palo_alto, f5_bigip) would attach to this host, using the host's already-configured SNMP credentials, and ships a bakery rule to deploy the caps-scout agent plugin itself.",
+  "description": "Host capability discovery for Checkmk. An agent plugin detects which engines run on a host (databases, web and application servers, containers, virtualization, clustering, backup, messaging, and more) and reports each one as a host label under caps/, so you can see which Checkmk plugins are worth installing there. A Checkmk-side SNMP section also identifies 117 SNMP device families, such as Cisco, Juniper, Fortinet and APC, as caps/snmp/ labels, reusing the host's existing SNMP credentials. A Capabilities Scout service lists every detected capability with its logo and an Add rule link to the matching bakery rule, and a bakery rule deploys the agent plugin itself.",
   "version": "1.0.0",
   "version.packaged": "2.5.0",
   "version.min_required": "2.5.0",
