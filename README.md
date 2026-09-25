@@ -1,4 +1,4 @@
-<img src="docs/images/caps-scout-icon.svg" alt="caps-scout icon: an explorer's hat above binoculars" width="96" align="right">
+<img src="docs/images/caps-scout-icon.svg" alt="caps-scout icon: an explorer's hat above binoculars" width="96">
 
 # caps-scout
 
